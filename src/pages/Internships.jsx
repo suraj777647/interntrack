@@ -55,7 +55,8 @@ export const Internships = () => {
 
   // List of applied internship IDs
   const appliedInternshipIds = useMemo(() => {
-    return applications.map((a) => a.internshipId);
+    const safeApps = Array.isArray(applications) ? applications : [];
+    return safeApps.map((a) => a.internshipId);
   }, [applications]);
 
   // Categories list
@@ -74,17 +75,18 @@ export const Internships = () => {
 
   // Filtered internships
   const filteredInternships = useMemo(() => {
-    return internships.filter((item) => {
+    const safeInts = Array.isArray(internships) ? internships : [];
+    return safeInts.filter((item) => {
       const matchesSearch =
-        item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.requirements && item.requirements.some((r) => r.toLowerCase().includes(searchTerm.toLowerCase())));
+        (item.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.company || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.requirements && Array.isArray(item.requirements) && item.requirements.some((r) => r.toLowerCase().includes(searchTerm.toLowerCase())));
 
       const matchesCategory =
         selectedCategory === 'All' || item.category === selectedCategory;
 
       const matchesMode =
-        selectedMode === 'All' || item.workMode.toLowerCase() === selectedMode.toLowerCase();
+        selectedMode === 'All' || (item.workMode || '').toLowerCase() === selectedMode.toLowerCase();
 
       const matchesDuration =
         selectedDuration === 'All' || item.duration === selectedDuration;

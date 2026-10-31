@@ -44,6 +44,9 @@ export const Attendance = () => {
   const [editStatus, setEditStatus] = useState('present');
   const [editNote, setEditNote] = useState('');
 
+  // Safe attendance array
+  const safeAttendance = Array.isArray(attendance) ? attendance : [];
+
   // Day names header
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -213,7 +216,7 @@ export const Attendance = () => {
             <div key={`blank-${b}`} className="calendar-day-box blank-day"></div>
           ))}
 
-          {attendance.map((rec) => {
+          {safeAttendance.map((rec) => {
             const isToday = rec.dayNumber === 31;
 
             return (
@@ -276,14 +279,14 @@ export const Attendance = () => {
               </tr>
             </thead>
             <tbody>
-              {attendance.length === 0 ? (
+              {safeAttendance.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="text-center py-6 text-muted">
                     No attendance records logged yet. Click "+ Log Any Date Entry" to record your days.
                   </td>
                 </tr>
               ) : (
-                attendance.slice(0, 15).map((rec) => (
+                safeAttendance.slice(0, 15).map((rec) => (
                   <tr key={rec.id}>
                     <td>
                       <div className="date-cell">

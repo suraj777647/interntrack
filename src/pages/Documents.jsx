@@ -48,10 +48,11 @@ export const Documents = () => {
   ];
 
   const filteredDocs = useMemo(() => {
-    return documents.filter((doc) => {
+    const safeDocs = Array.isArray(documents) ? documents : [];
+    return safeDocs.filter((doc) => {
       const matchesSearch =
-        doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.category.toLowerCase().includes(searchTerm.toLowerCase());
+        (doc.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (doc.category || '').toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesCategory =
         selectedCategory === 'All' || doc.category === selectedCategory;

@@ -29,54 +29,59 @@ const defaultDemoUser = {
   currentInternship: initialStudentProfile.currentInternship,
   mentorName: initialStudentProfile.mentorName,
   industryMentor: initialStudentProfile.industryMentor,
-  skills: initialStudentProfile.skills,
-  careerInterests: initialStudentProfile.careerInterests,
-  bio: initialStudentProfile.bio,
-  cgpa: initialStudentProfile.cgpa
+  skills: initialStudentProfile.skills || [],
+  careerInterests: initialStudentProfile.careerInterests || [],
+  bio: initialStudentProfile.bio || '',
+  cgpa: initialStudentProfile.cgpa || '8.78 / 10.0'
 };
 
 export const AppProvider = ({ children }) => {
-  // Helper to read localStorage safely
+  // Safe LocalStorage helper with strict null/undefined filtering
   const loadStored = (key, fallback) => {
     try {
       const stored = localStorage.getItem(key);
-      return stored ? JSON.parse(stored) : fallback;
+      if (!stored || stored === 'undefined' || stored === 'null') {
+        return fallback;
+      }
+      const parsed = JSON.parse(stored);
+      if (parsed === null || parsed === undefined) {
+        return fallback;
+      }
+      return parsed;
     } catch (err) {
       console.warn(`Error reading ${key} from LocalStorage:`, err);
       return fallback;
     }
   };
 
-  // Helper to get personal user storage key
+  // Safe user personal key
   const getUserDataKey = (enrollmentNo) => {
-    return `interntrack_userdata_${(enrollmentNo || 'default').toUpperCase()}`;
+    const safeId = (enrollmentNo || defaultDemoUser.enrollmentNo).toString().trim().toUpperCase();
+    return `interntrack_userdata_${safeId}`;
   };
 
   // Helper to load personal workspace for a student
   const loadUserPersonalData = (user) => {
-    if (!user || !user.enrollmentNo) {
-      return {
-        profile: defaultDemoUser,
-        applications: initialApplications,
-        tasks: initialTasks,
-        attendance: initialAttendanceRecords,
-        diary: initialDiaryEntries,
-        documents: initialDocuments,
-        notifications: initialNotifications
-      };
-    }
-
-    const key = getUserDataKey(user.enrollmentNo);
+    const safeUser = (user && user.enrollmentNo) ? user : defaultDemoUser;
+    const key = getUserDataKey(safeUser.enrollmentNo);
     const saved = loadStored(key, null);
 
-    if (saved) {
-      return saved;
+    if (saved && typeof saved === 'object') {
+      return {
+        profile: { ...defaultDemoUser, ...(saved.profile || safeUser) },
+        applications: Array.isArray(saved.applications) ? saved.applications : [],
+        tasks: Array.isArray(saved.tasks) ? saved.tasks : [],
+        attendance: Array.isArray(saved.attendance) ? saved.attendance : [],
+        diary: Array.isArray(saved.diary) ? saved.diary : [],
+        documents: Array.isArray(saved.documents) ? saved.documents : [],
+        notifications: Array.isArray(saved.notifications) ? saved.notifications : []
+      };
     }
 
-    // If default demo user, initialize with sample dataset
-    if (user.enrollmentNo.toUpperCase() === defaultDemoUser.enrollmentNo.toUpperCase()) {
+    // Default demo user gets rich pre-seeded records
+    if (safeUser.enrollmentNo.toUpperCase() === defaultDemoUser.enrollmentNo.toUpperCase()) {
       const initialData = {
-        profile: { ...defaultDemoUser, ...user },
+        profile: { ...defaultDemoUser, ...safeUser },
         applications: initialApplications,
         tasks: initialTasks,
         attendance: initialAttendanceRecords,
@@ -84,19 +89,21 @@ export const AppProvider = ({ children }) => {
         documents: initialDocuments,
         notifications: initialNotifications
       };
-      localStorage.setItem(key, JSON.stringify(initialData));
+      try {
+        localStorage.setItem(key, JSON.stringify(initialData));
+      } catch (e) {}
       return initialData;
     }
 
-    // For any newly registered student, initialize their clean personal workspace
+    // Newly registered student gets clean personal workspace
     const newStudentData = {
-      profile: user,
+      profile: { ...defaultDemoUser, ...safeUser },
       applications: [],
       tasks: [
         {
           id: `task-${Date.now()}-1`,
           title: 'Review SIP University Guidelines & Evaluation Criteria',
-          description: `Welcome to your personal SIP workspace, ${user.fullName}. Review mandatory deliverables required for 7th Sem evaluation.`,
+          description: `Welcome to your personal SIP workspace, ${safeUser.fullName}. Review mandatory deliverables required for 7th Sem evaluation.`,
           dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           priority: 'High',
           category: 'Academic',
@@ -110,7 +117,7 @@ export const AppProvider = ({ children }) => {
       notifications: [
         {
           id: `notif-${Date.now()}`,
-          title: `Welcome, ${user.fullName}! 🎓`,
+          title: `Welcome, ${safeUser.fullName}! 🎓`,
           message: 'Your personal internship workspace has been initialized. You can explore internships, log daily attendance, and track tasks.',
           time: 'Just now',
           read: false,
@@ -118,37 +125,61 @@ export const AppProvider = ({ children }) => {
         }
       ]
     };
-    localStorage.setItem(key, JSON.stringify(newStudentData));
+    try {
+      localStorage.setItem(key, JSON.stringify(newStudentData));
+    } catch (e) {}
     return newStudentData;
   };
 
   // --- 1. Users Registry & Current Logged-in User ---
-  const [users, setUsers] = useState(() => loadStored('interntrack_users', [defaultDemoUser]));
+  const [users, setUsers] = useState(() => {
+    const loaded = loadStored('interntrack_users', [defaultDemoUser]);
+    return Array.isArray(loaded) && loaded.length > 0 ? loaded : [defaultDemoUser];
+  });
 
   const [currentUser, setCurrentUser] = useState(() => {
     const savedUser = loadStored('interntrack_current_user', defaultDemoUser);
-    return savedUser;
+    if (!savedUser || typeof savedUser !== 'object' || !savedUser.enrollmentNo) {
+      return defaultDemoUser;
+    }
+    return { ...defaultDemoUser, ...savedUser };
   });
 
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return loadStored('interntrack_is_logged_in', true);
+    const saved = loadStored('interntrack_is_logged_in', true);
+    return typeof saved === 'boolean' ? saved : true;
   });
 
   // --- 2. Shared Global Internships Directory ---
-  const [internships, setInternships] = useState(() =>
-    loadStored('interntrack_internships', initialInternships)
-  );
+  const [internships, setInternships] = useState(() => {
+    const loaded = loadStored('interntrack_internships', initialInternships);
+    return Array.isArray(loaded) && loaded.length > 0 ? loaded : initialInternships;
+  });
 
   // --- 3. Personal Student Workspace State (Isolated per Student) ---
   const initialWorkspace = loadUserPersonalData(currentUser);
 
-  const [profile, setProfile] = useState(initialWorkspace.profile || currentUser);
-  const [applications, setApplications] = useState(initialWorkspace.applications || []);
-  const [tasks, setTasks] = useState(initialWorkspace.tasks || []);
-  const [attendance, setAttendance] = useState(initialWorkspace.attendance || []);
-  const [diary, setDiary] = useState(initialWorkspace.diary || []);
-  const [documents, setDocuments] = useState(initialWorkspace.documents || []);
-  const [notifications, setNotifications] = useState(initialWorkspace.notifications || []);
+  const [profile, setProfile] = useState(() => {
+    return initialWorkspace?.profile || currentUser || defaultDemoUser;
+  });
+  const [applications, setApplications] = useState(() => {
+    return Array.isArray(initialWorkspace?.applications) ? initialWorkspace.applications : [];
+  });
+  const [tasks, setTasks] = useState(() => {
+    return Array.isArray(initialWorkspace?.tasks) ? initialWorkspace.tasks : [];
+  });
+  const [attendance, setAttendance] = useState(() => {
+    return Array.isArray(initialWorkspace?.attendance) ? initialWorkspace.attendance : [];
+  });
+  const [diary, setDiary] = useState(() => {
+    return Array.isArray(initialWorkspace?.diary) ? initialWorkspace.diary : [];
+  });
+  const [documents, setDocuments] = useState(() => {
+    return Array.isArray(initialWorkspace?.documents) ? initialWorkspace.documents : [];
+  });
+  const [notifications, setNotifications] = useState(() => {
+    return Array.isArray(initialWorkspace?.notifications) ? initialWorkspace.notifications : [];
+  });
 
   // --- Global UI States ---
   const [toasts, setToasts] = useState([]);
@@ -157,16 +188,22 @@ export const AppProvider = ({ children }) => {
 
   // Sync users & global state
   useEffect(() => {
-    localStorage.setItem('interntrack_users', JSON.stringify(users));
+    try {
+      localStorage.setItem('interntrack_users', JSON.stringify(users));
+    } catch (e) {}
   }, [users]);
 
   useEffect(() => {
-    localStorage.setItem('interntrack_current_user', JSON.stringify(currentUser));
-    localStorage.setItem('interntrack_is_logged_in', JSON.stringify(isLoggedIn));
+    try {
+      localStorage.setItem('interntrack_current_user', JSON.stringify(currentUser));
+      localStorage.setItem('interntrack_is_logged_in', JSON.stringify(isLoggedIn));
+    } catch (e) {}
   }, [currentUser, isLoggedIn]);
 
   useEffect(() => {
-    localStorage.setItem('interntrack_internships', JSON.stringify(internships));
+    try {
+      localStorage.setItem('interntrack_internships', JSON.stringify(internships));
+    } catch (e) {}
   }, [internships]);
 
   // Sync personal student data to LocalStorage under user-specific key
@@ -181,21 +218,24 @@ export const AppProvider = ({ children }) => {
         documents,
         notifications
       };
-      localStorage.setItem(getUserDataKey(currentUser.enrollmentNo), JSON.stringify(personalData));
+      try {
+        localStorage.setItem(getUserDataKey(currentUser.enrollmentNo), JSON.stringify(personalData));
+      } catch (e) {}
     }
   }, [currentUser, profile, applications, tasks, attendance, diary, documents, notifications]);
 
   // Switch student workspace when currentUser changes
   const switchUserWorkspace = (targetUser) => {
-    const data = loadUserPersonalData(targetUser);
-    setCurrentUser(targetUser);
-    setProfile(data.profile || targetUser);
-    setApplications(data.applications || []);
-    setTasks(data.tasks || []);
-    setAttendance(data.attendance || []);
-    setDiary(data.diary || []);
-    setDocuments(data.documents || []);
-    setNotifications(data.notifications || []);
+    const safeTarget = { ...defaultDemoUser, ...(targetUser || {}) };
+    const data = loadUserPersonalData(safeTarget);
+    setCurrentUser(safeTarget);
+    setProfile(data.profile || safeTarget);
+    setApplications(Array.isArray(data.applications) ? data.applications : []);
+    setTasks(Array.isArray(data.tasks) ? data.tasks : []);
+    setAttendance(Array.isArray(data.attendance) ? data.attendance : []);
+    setDiary(Array.isArray(data.diary) ? data.diary : []);
+    setDocuments(Array.isArray(data.documents) ? data.documents : []);
+    setNotifications(Array.isArray(data.notifications) ? data.notifications : []);
   };
 
   // --- Toast Dispatcher ---
@@ -214,10 +254,11 @@ export const AppProvider = ({ children }) => {
 
   // --- Authentication Operations ---
   const registerUser = (userData) => {
-    const existing = users.find(
+    const safeUsers = Array.isArray(users) ? users : [];
+    const existing = safeUsers.find(
       (u) =>
-        u.enrollmentNo.toLowerCase() === userData.enrollmentNo.toLowerCase() ||
-        u.email.toLowerCase() === userData.email.toLowerCase()
+        u.enrollmentNo?.toLowerCase() === userData.enrollmentNo?.toLowerCase() ||
+        u.email?.toLowerCase() === userData.email?.toLowerCase()
     );
 
     if (existing) {
@@ -226,12 +267,13 @@ export const AppProvider = ({ children }) => {
     }
 
     const newUser = {
+      ...defaultDemoUser,
       id: `usr-${Date.now()}`,
-      fullName: userData.fullName.trim(),
-      email: userData.email.trim(),
+      fullName: (userData.fullName || 'Student').trim(),
+      email: (userData.email || 'student@college.edu').trim(),
       phone: userData.phone || '+91 98765 00000',
-      enrollmentNo: userData.enrollmentNo.trim().toUpperCase(),
-      collegeName: userData.collegeName.trim(),
+      enrollmentNo: (userData.enrollmentNo || `STU-${Date.now().toString().slice(-4)}`).trim().toUpperCase(),
+      collegeName: (userData.collegeName || 'Engineering College').trim(),
       universityName: userData.universityName || 'State Technological University',
       degree: userData.degree || 'Bachelor of Technology (B.Tech)',
       branch: userData.branch || 'Computer Science & Engineering',
@@ -239,19 +281,21 @@ export const AppProvider = ({ children }) => {
       password: userData.password || 'password123',
       avatar:
         userData.avatar ||
-        `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userData.fullName)}&backgroundColor=2563eb`,
+        `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userData.fullName || 'User')}&backgroundColor=2563eb`,
       currentInternship: userData.currentInternship || 'Software Engineering Intern',
       mentorName: userData.mentorName || 'Faculty Guide / Department Coordinator',
       industryMentor: userData.industryMentor || 'Lead Engineer',
       skills: ['React.js', 'JavaScript', 'HTML5/CSS3', 'Git'],
       careerInterests: ['Web Development', 'Software Engineering'],
-      bio: `B.Tech student at ${userData.collegeName}. Maintaining internship records for university SIP evaluation.`,
+      bio: `B.Tech student at ${userData.collegeName || 'College'}. Maintaining internship records for university SIP evaluation.`,
       cgpa: userData.cgpa || '8.5 / 10.0'
     };
 
-    const updatedUsers = [...users, newUser];
+    const updatedUsers = [...safeUsers, newUser];
     setUsers(updatedUsers);
-    localStorage.setItem('interntrack_users', JSON.stringify(updatedUsers));
+    try {
+      localStorage.setItem('interntrack_users', JSON.stringify(updatedUsers));
+    } catch (e) {}
 
     // Switch to this new student's personal dashboard
     switchUserWorkspace(newUser);
@@ -262,10 +306,11 @@ export const AppProvider = ({ children }) => {
   };
 
   const loginUser = (studentIdOrEmail, password) => {
-    const query = studentIdOrEmail.trim().toLowerCase();
-    const foundUser = users.find(
+    const query = (studentIdOrEmail || '').trim().toLowerCase();
+    const safeUsers = Array.isArray(users) ? users : [defaultDemoUser];
+    const foundUser = safeUsers.find(
       (u) =>
-        (u.enrollmentNo.toLowerCase() === query || u.email.toLowerCase() === query) &&
+        (u.enrollmentNo?.toLowerCase() === query || u.email?.toLowerCase() === query) &&
         u.password === password
     );
 
@@ -287,14 +332,15 @@ export const AppProvider = ({ children }) => {
 
   // --- Profile Operations (Personal) ---
   const updateProfile = (updatedFields) => {
-    const updated = { ...profile, ...updatedFields };
+    const updated = { ...defaultDemoUser, ...profile, ...updatedFields };
     setProfile(updated);
     setCurrentUser(updated);
 
     // Update in users registry
-    setUsers((prev) =>
-      prev.map((u) => (u.enrollmentNo === updated.enrollmentNo || u.id === updated.id ? updated : u))
-    );
+    setUsers((prev) => {
+      const safe = Array.isArray(prev) ? prev : [defaultDemoUser];
+      return safe.map((u) => (u.enrollmentNo === updated.enrollmentNo || u.id === updated.id ? updated : u));
+    });
 
     showToast('Profile Updated', 'Student profile details saved to your personal record.', 'success');
   };
@@ -322,7 +368,7 @@ export const AppProvider = ({ children }) => {
         : ['Internship Completion Certificate', 'Flexible Hours', 'Mentorship']
     };
 
-    setInternships((prev) => [newInt, ...prev]);
+    setInternships((prev) => [newInt, ...(Array.isArray(prev) ? prev : [])]);
     showToast('Opportunity Added', `"${newInt.title}" at ${newInt.company} listed in portal.`, 'success');
     return newInt;
   };
@@ -342,14 +388,15 @@ export const AppProvider = ({ children }) => {
         }
       ]
     };
-    setApplications((prev) => [appWithId, ...prev]);
+    setApplications((prev) => [appWithId, ...(Array.isArray(prev) ? prev : [])]);
     showToast('Application Submitted', `Applied for ${newApp.title} at ${newApp.company}!`, 'success');
     return appWithId;
   };
 
   const updateApplicationStatus = (appId, newStatus, optionalNote) => {
-    setApplications((prev) =>
-      prev.map((app) => {
+    setApplications((prev) => {
+      const safe = Array.isArray(prev) ? prev : [];
+      return safe.map((app) => {
         if (app.id === appId) {
           const updatedHistory = [
             ...(app.statusHistory || []),
@@ -366,13 +413,13 @@ export const AppProvider = ({ children }) => {
           };
         }
         return app;
-      })
-    );
+      });
+    });
     showToast('Status Updated', `Application status changed to ${newStatus}.`, 'info');
   };
 
   const deleteApplication = (appId) => {
-    setApplications((prev) => prev.filter((app) => app.id !== appId));
+    setApplications((prev) => (Array.isArray(prev) ? prev.filter((app) => app.id !== appId) : []));
     showToast('Application Withdrawn', 'Internship application removed.', 'info');
   };
 
@@ -384,32 +431,34 @@ export const AppProvider = ({ children }) => {
       createdAt: new Date().toISOString().split('T')[0],
       status: taskData.status || 'Pending'
     };
-    setTasks((prev) => [newTask, ...prev]);
+    setTasks((prev) => [newTask, ...(Array.isArray(prev) ? prev : [])]);
     showToast('Task Added', `"${newTask.title}" added to your task list.`, 'success');
   };
 
   const updateTask = (taskId, updatedFields) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, ...updatedFields } : t))
-    );
+    setTasks((prev) => {
+      const safe = Array.isArray(prev) ? prev : [];
+      return safe.map((t) => (t.id === taskId ? { ...t, ...updatedFields } : t));
+    });
     showToast('Task Updated', 'Task changes saved.', 'success');
   };
 
   const deleteTask = (taskId) => {
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    setTasks((prev) => (Array.isArray(prev) ? prev.filter((t) => t.id !== taskId) : []));
     showToast('Task Removed', 'Task deleted from your board.', 'info');
   };
 
   const toggleTaskStatus = (taskId) => {
-    setTasks((prev) =>
-      prev.map((t) => {
+    setTasks((prev) => {
+      const safe = Array.isArray(prev) ? prev : [];
+      return safe.map((t) => {
         if (t.id === taskId) {
           const nextStatus = t.status === 'Completed' ? 'Pending' : 'Completed';
           return { ...t, status: nextStatus };
         }
         return t;
-      })
-    );
+      });
+    });
   };
 
   // --- Attendance Operations (Personal to Logged-in Student) ---
@@ -418,7 +467,8 @@ export const AppProvider = ({ children }) => {
     const isPresent = entryData.status === 'present' || entryData.status === 'od';
 
     setAttendance((prev) => {
-      const existingIdx = prev.findIndex((r) => r.date === targetDate);
+      const safe = Array.isArray(prev) ? prev : [];
+      const existingIdx = safe.findIndex((r) => r.date === targetDate);
       const updatedRecord = {
         id: `att-${targetDate}`,
         date: targetDate,
@@ -432,11 +482,11 @@ export const AppProvider = ({ children }) => {
       };
 
       if (existingIdx >= 0) {
-        const copy = [...prev];
+        const copy = [...safe];
         copy[existingIdx] = updatedRecord;
         return copy;
       } else {
-        return [updatedRecord, ...prev];
+        return [updatedRecord, ...safe];
       }
     });
 
@@ -456,15 +506,17 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateAttendanceRecord = (recordId, updatedFields) => {
-    setAttendance((prev) =>
-      prev.map((rec) => (rec.id === recordId ? { ...rec, ...updatedFields } : rec))
-    );
+    setAttendance((prev) => {
+      const safe = Array.isArray(prev) ? prev : [];
+      return safe.map((rec) => (rec.id === recordId ? { ...rec, ...updatedFields } : rec));
+    });
     showToast('Record Updated', 'Attendance record modified.', 'info');
   };
 
   // Dynamic Attendance Stats (Specific to Logged-in Student)
   const attendanceStats = (() => {
-    const workingDays = attendance.filter((r) => r.status !== 'weekend');
+    const safeAttendance = Array.isArray(attendance) ? attendance : [];
+    const workingDays = safeAttendance.filter((r) => r.status !== 'weekend');
     const presentDays = workingDays.filter((r) => r.status === 'present' || r.status === 'od').length;
     const absentDays = workingDays.filter((r) => r.status === 'absent').length;
     const leaveDays = workingDays.filter((r) => r.status === 'leave').length;
@@ -489,13 +541,14 @@ export const AppProvider = ({ children }) => {
         ? entryData.tasksCompleted
         : (entryData.tasksCompleted || '').split('\n').filter(Boolean)
     };
-    setDiary((prev) => [newEntry, ...prev]);
+    setDiary((prev) => [newEntry, ...(Array.isArray(prev) ? prev : [])]);
     showToast('Diary Saved', 'Daily work log added to your internship diary.', 'success');
   };
 
   const updateDiaryEntry = (entryId, updatedFields) => {
-    setDiary((prev) =>
-      prev.map((e) =>
+    setDiary((prev) => {
+      const safe = Array.isArray(prev) ? prev : [];
+      return safe.map((e) =>
         e.id === entryId
           ? {
               ...e,
@@ -505,54 +558,59 @@ export const AppProvider = ({ children }) => {
                 : (updatedFields.tasksCompleted || '').split('\n').filter(Boolean)
             }
           : e
-      )
-    );
+      );
+    });
     showToast('Diary Updated', 'Diary record updated.', 'success');
   };
 
   const deleteDiaryEntry = (entryId) => {
-    setDiary((prev) => prev.filter((e) => e.id !== entryId));
+    setDiary((prev) => (Array.isArray(prev) ? prev.filter((e) => e.id !== entryId) : []));
     showToast('Diary Removed', 'Diary record deleted.', 'info');
   };
 
   // --- Documents Operations (Personal to Logged-in Student) ---
   const addDocument = (docData) => {
+    const safeProfile = profile || defaultDemoUser;
     const newDoc = {
       ...docData,
       id: `doc-${Date.now()}`,
       uploadedDate: new Date().toISOString().split('T')[0],
       status: docData.status || 'Verified',
       previewContent: docData.previewContent || {
-        title: docData.name.toUpperCase(),
+        title: (docData.name || 'DOCUMENT').toUpperCase(),
         subtitle: `Internship Document - Category: ${docData.category}`,
         sections: [
           `File: ${docData.name}`,
           `Category: ${docData.category}`,
           `Uploaded: ${new Date().toLocaleDateString()}`,
-          `Student: ${profile.fullName} (${profile.enrollmentNo})`,
-          `College: ${profile.collegeName}`
+          `Student: ${safeProfile.fullName} (${safeProfile.enrollmentNo})`,
+          `College: ${safeProfile.collegeName}`
         ],
         watermark: 'OFFICIAL RECORD'
       }
     };
-    setDocuments((prev) => [newDoc, ...prev]);
+    setDocuments((prev) => [newDoc, ...(Array.isArray(prev) ? prev : [])]);
     showToast('Document Uploaded', `"${docData.name}" saved to your repository.`, 'success');
   };
 
   const deleteDocument = (docId) => {
-    setDocuments((prev) => prev.filter((d) => d.id !== docId));
+    setDocuments((prev) => (Array.isArray(prev) ? prev.filter((d) => d.id !== docId) : []));
     showToast('Document Removed', 'Document deleted from your vault.', 'info');
   };
 
   // --- Notifications Operations (Personal to Logged-in Student) ---
   const markNotificationRead = (notifId) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notifId ? { ...n, read: true } : n))
-    );
+    setNotifications((prev) => {
+      const safe = Array.isArray(prev) ? prev : [];
+      return safe.map((n) => (n.id === notifId ? { ...n, read: true } : n));
+    });
   };
 
   const markAllNotificationsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setNotifications((prev) => {
+      const safe = Array.isArray(prev) ? prev : [];
+      return safe.map((n) => ({ ...n, read: true }));
+    });
     showToast('Notifications Cleared', 'All notifications marked as read.', 'info');
   };
 
@@ -587,62 +645,67 @@ export const AppProvider = ({ children }) => {
   };
 
   // Computed summary metrics for THIS logged-in student's Personal Dashboard
+  const safeApps = Array.isArray(applications) ? applications : [];
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const safeDiary = Array.isArray(diary) ? diary : [];
+  const safeDocs = Array.isArray(documents) ? documents : [];
+
   const metrics = {
-    totalApplications: applications.length,
-    activeInternships: applications.filter((a) => a.status === 'Selected').length,
-    shortlistedApplications: applications.filter((a) => a.status === 'Shortlisted').length,
-    underReviewApplications: applications.filter((a) => a.status === 'Under Review').length,
-    completedTasks: tasks.filter((t) => t.status === 'Completed').length,
-    pendingTasks: tasks.filter((t) => t.status !== 'Completed').length,
-    totalTasks: tasks.length,
+    totalApplications: safeApps.length,
+    activeInternships: safeApps.filter((a) => a.status === 'Selected').length,
+    shortlistedApplications: safeApps.filter((a) => a.status === 'Shortlisted').length,
+    underReviewApplications: safeApps.filter((a) => a.status === 'Under Review').length,
+    completedTasks: safeTasks.filter((t) => t.status === 'Completed').length,
+    pendingTasks: safeTasks.filter((t) => t.status !== 'Completed').length,
+    totalTasks: safeTasks.length,
     taskCompletionRate:
-      tasks.length > 0
-        ? Math.round((tasks.filter((t) => t.status === 'Completed').length / tasks.length) * 100)
+      safeTasks.length > 0
+        ? Math.round((safeTasks.filter((t) => t.status === 'Completed').length / safeTasks.length) * 100)
         : 0,
     attendanceRate: attendanceStats.percentage,
-    totalDiaryEntries: diary.length,
-    totalDocuments: documents.length
+    totalDiaryEntries: safeDiary.length,
+    totalDocuments: safeDocs.length
   };
 
   return (
     <AppContext.Provider
       value={{
-        users,
-        currentUser,
-        isLoggedIn,
+        users: Array.isArray(users) ? users : [defaultDemoUser],
+        currentUser: currentUser || defaultDemoUser,
+        isLoggedIn: Boolean(isLoggedIn),
         setIsLoggedIn,
         registerUser,
         loginUser,
         logoutUser,
-        profile,
+        profile: profile || defaultDemoUser,
         updateProfile,
-        internships,
+        internships: Array.isArray(internships) ? internships : initialInternships,
         addInternship,
-        applications,
+        applications: safeApps,
         addApplication,
         updateApplicationStatus,
         deleteApplication,
-        tasks,
+        tasks: safeTasks,
         addTask,
         updateTask,
         deleteTask,
         toggleTaskStatus,
-        attendance,
+        attendance: Array.isArray(attendance) ? attendance : [],
         attendanceStats,
         logAttendance,
         markTodayAttendance,
         updateAttendanceRecord,
-        diary,
+        diary: safeDiary,
         addDiaryEntry,
         updateDiaryEntry,
         deleteDiaryEntry,
-        documents,
+        documents: safeDocs,
         addDocument,
         deleteDocument,
-        notifications,
+        notifications: Array.isArray(notifications) ? notifications : [],
         markNotificationRead,
         markAllNotificationsRead,
-        toasts,
+        toasts: Array.isArray(toasts) ? toasts : [],
         showToast,
         removeToast,
         searchQuery,

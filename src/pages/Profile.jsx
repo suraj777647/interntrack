@@ -19,33 +19,35 @@ import {
   Sparkles,
   ShieldCheck,
   RotateCcw,
-  CheckCircle2
+  CheckCircle2,
+  Trash2
 } from 'lucide-react';
 import './Profile.css';
 
 export const Profile = () => {
   const { profile, updateProfile, resetDemoData, clearAllDataToFresh, logoutUser, metrics } = useInternTrack();
+  const safeProfile = profile || {};
 
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({ ...profile });
+  const [formData, setFormData] = useState({ ...safeProfile });
   const [newSkill, setNewSkill] = useState('');
   const [newInterest, setNewInterest] = useState('');
 
   // Calculate profile completion
   const profileFields = [
-    profile.fullName,
-    profile.email,
-    profile.phone,
-    profile.collegeName,
-    profile.universityName,
-    profile.enrollmentNo,
-    profile.degree,
-    profile.branch,
-    profile.semester,
-    profile.skills?.length > 0,
-    profile.bio,
-    profile.currentInternship,
-    profile.mentorName
+    safeProfile.fullName,
+    safeProfile.email,
+    safeProfile.phone,
+    safeProfile.collegeName,
+    safeProfile.universityName,
+    safeProfile.enrollmentNo,
+    safeProfile.degree,
+    safeProfile.branch,
+    safeProfile.semester,
+    safeProfile.skills?.length > 0,
+    safeProfile.bio,
+    safeProfile.currentInternship,
+    safeProfile.mentorName
   ];
   const completedFields = profileFields.filter(Boolean).length;
   const completionScore = Math.round((completedFields / profileFields.length) * 100);

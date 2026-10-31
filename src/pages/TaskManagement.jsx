@@ -47,19 +47,20 @@ export const TaskManagement = () => {
   const categories = ['All', 'Development', 'Documentation', 'Testing', 'Presentation', 'Academic', 'Bug Fix', 'Research'];
   const priorities = ['All', 'High', 'Medium', 'Low'];
 
-  // Calculate Progress Metrics
-  const totalCount = tasks.length;
-  const completedCount = tasks.filter((t) => t.status === 'Completed').length;
+  // Calculate Progress Metrics safely
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const totalCount = safeTasks.length;
+  const completedCount = safeTasks.filter((t) => t.status === 'Completed').length;
   const pendingCount = totalCount - completedCount;
   const completionPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-  const highPriorityPending = tasks.filter((t) => t.status !== 'Completed' && t.priority === 'High').length;
+  const highPriorityPending = safeTasks.filter((t) => t.status !== 'Completed' && t.priority === 'High').length;
 
   // Filtered Tasks
   const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
+    return safeTasks.filter((task) => {
       const matchesSearch =
-        task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.description.toLowerCase().includes(searchTerm.toLowerCase());
+        (task.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (task.description || '').toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus =
         statusFilter === 'All'
@@ -76,7 +77,7 @@ export const TaskManagement = () => {
 
       return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
     });
-  }, [tasks, searchTerm, statusFilter, priorityFilter, categoryFilter]);
+  }, [safeTasks, searchTerm, statusFilter, priorityFilter, categoryFilter]);
 
   const handleOpenAddModal = () => {
     setEditingTask(null);

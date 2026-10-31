@@ -41,8 +41,9 @@ export const MyApplications = () => {
 
   // Counts for pills
   const counts = useMemo(() => {
-    const res = { All: applications.length, Selected: 0, Shortlisted: 0, 'Under Review': 0, Pending: 0, Rejected: 0 };
-    applications.forEach((a) => {
+    const safeApps = Array.isArray(applications) ? applications : [];
+    const res = { All: safeApps.length, Selected: 0, Shortlisted: 0, 'Under Review': 0, Pending: 0, Rejected: 0 };
+    safeApps.forEach((a) => {
       if (res[a.status] !== undefined) {
         res[a.status]++;
       }
@@ -52,10 +53,11 @@ export const MyApplications = () => {
 
   // Filtered applications
   const filteredApps = useMemo(() => {
-    return applications.filter((app) => {
+    const safeApps = Array.isArray(applications) ? applications : [];
+    return safeApps.filter((app) => {
       const matchesSearch =
-        app.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.company.toLowerCase().includes(searchTerm.toLowerCase());
+        (app.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (app.company || '').toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus =
         selectedStatusFilter === 'All' || app.status === selectedStatusFilter;

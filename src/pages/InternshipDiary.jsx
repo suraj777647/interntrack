@@ -44,14 +44,15 @@ export const InternshipDiary = () => {
 
   const [errors, setErrors] = useState({});
 
-  // Search filtered diary entries
+  // Search filtered diary entries safely
   const filteredDiary = useMemo(() => {
-    return diary.filter((entry) => {
+    const safeDiary = Array.isArray(diary) ? diary : [];
+    return safeDiary.filter((entry) => {
       const q = searchTerm.toLowerCase();
       return (
-        entry.title.toLowerCase().includes(q) ||
-        entry.workDescription.toLowerCase().includes(q) ||
-        entry.date.includes(q) ||
+        (entry.title || '').toLowerCase().includes(q) ||
+        (entry.workDescription || '').toLowerCase().includes(q) ||
+        (entry.date || '').includes(q) ||
         (entry.skillsLearned && entry.skillsLearned.toLowerCase().includes(q))
       );
     });

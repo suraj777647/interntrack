@@ -18,7 +18,8 @@ import {
   Sparkles,
   Building2,
   Award,
-  AlertCircle
+  AlertCircle,
+  Compass
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -35,12 +36,18 @@ import {
 import './Dashboard.css';
 
 export const Dashboard = () => {
-  const { profile, metrics, applications, tasks, diary, attendanceStats, attendance } = useInternTrack();
+  const { profile, metrics, applications, tasks, diary, documents, attendanceStats, attendance } = useInternTrack();
   const navigate = useNavigate();
+
+  const safeApps = Array.isArray(applications) ? applications : [];
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const safeDiary = Array.isArray(diary) ? diary : [];
+  const safeDocs = Array.isArray(documents) ? documents : [];
+  const safeAttendance = Array.isArray(attendance) ? attendance : [];
 
   // Dynamically compute weekly hours from this student's actual attendance records
   const weeklyAttendanceData = useMemo(() => {
-    if (!attendance || attendance.length === 0) {
+    if (!safeAttendance || safeAttendance.length === 0) {
       return [
         { day: 'Mon', hours: 0, status: 'No Record' },
         { day: 'Tue', hours: 0, status: 'No Record' },
@@ -51,7 +58,7 @@ export const Dashboard = () => {
       ];
     }
     // Take the last 6 records or map them cleanly
-    const recentLogs = attendance.slice(0, 6).reverse();
+    const recentLogs = safeAttendance.slice(0, 6).reverse();
     return recentLogs.map((log) => {
       const parsedHours =
         parseFloat(log.workingHours) ||
@@ -69,15 +76,15 @@ export const Dashboard = () => {
             : 'Absent'
       };
     });
-  }, [attendance]);
+  }, [safeAttendance]);
 
   // Pipeline distribution data (Personal to logged-in student)
   const statusCounts = {
-    Selected: applications.filter((a) => a.status === 'Selected').length,
-    Shortlisted: applications.filter((a) => a.status === 'Shortlisted').length,
-    'Under Review': applications.filter((a) => a.status === 'Under Review').length,
-    Pending: applications.filter((a) => a.status === 'Pending').length,
-    Rejected: applications.filter((a) => a.status === 'Rejected').length
+    Selected: safeApps.filter((a) => a.status === 'Selected').length,
+    Shortlisted: safeApps.filter((a) => a.status === 'Shortlisted').length,
+    'Under Review': safeApps.filter((a) => a.status === 'Under Review').length,
+    Pending: safeApps.filter((a) => a.status === 'Pending').length,
+    Rejected: safeApps.filter((a) => a.status === 'Rejected').length
   };
 
   const pipelineData = [
@@ -93,8 +100,8 @@ export const Dashboard = () => {
     const list = [];
 
     // Latest Application
-    if (applications.length > 0) {
-      const latestApp = applications[0];
+    if (safeApps.length > 0) {
+      const latestApp = safeApps[0];
       list.push({
         id: `act-app-${latestApp.id}`,
         title: `Application: ${latestApp.status}`,
@@ -111,8 +118,8 @@ export const Dashboard = () => {
     }
 
     // Latest Completed or Active Task
-    if (tasks.length > 0) {
-      const latestTask = tasks.find((t) => t.status === 'Completed') || tasks[0];
+    if (safeTasks.length > 0) {
+      const latestTask = safeTasks.find((t) => t.status === 'Completed') || safeTasks[0];
       list.push({
         id: `act-task-${latestTask.id}`,
         title: latestTask.status === 'Completed' ? 'Task Completed' : 'Task In Progress',
@@ -124,8 +131,8 @@ export const Dashboard = () => {
     }
 
     // Latest Diary Entry
-    if (diary.length > 0) {
-      const latestDiary = diary[0];
+    if (safeDiary.length > 0) {
+      const latestDiary = safeDiary[0];
       list.push({
         id: `act-diary-${latestDiary.id}`,
         title: 'Work Diary Recorded',
@@ -137,8 +144,8 @@ export const Dashboard = () => {
     }
 
     // Latest Document
-    if (documents.length > 0) {
-      const latestDoc = documents[0];
+    if (safeDocs.length > 0) {
+      const latestDoc = safeDocs[0];
       list.push({
         id: `act-doc-${latestDoc.id}`,
         title: 'Document Uploaded',
@@ -162,7 +169,7 @@ export const Dashboard = () => {
     }
 
     return list;
-  }, [applications, tasks, diary, documents]);
+  }, [safeApps, safeTasks, safeDiary, safeDocs]);
 
   return (
     <div className="dashboard-container">
@@ -203,7 +210,7 @@ export const Dashboard = () => {
             className="btn btn-primary"
             onClick={() => navigate('/internships')}
           >
-            <CompassIcon size={16} /> Explore Internships
+            <Compass size={16} /> Explore Internships
           </button>
           <button
             className="btn btn-outline"
@@ -366,38 +373,51 @@ export const Dashboard = () => {
             </Link>
           </div>
 
-          <div className="pipeline-flex">
-            <div className="pie-wrapper">
-              <ResponsiveContainer width="100%" height={190}>
-                <PieChart>
-                  <Pie
-                    data={pipelineData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={75}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {pipelineData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+          {pipelineData.length > 0 ? (
+            <div className="pipeline-flex">
+              <div className="pie-wrapper">
+                <ResponsiveContainer width="100%" height={190}>
+                  <PieChart>
+                    <Pie
+                      data={pipelineData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={75}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {pipelineData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
 
-            <div className="pipeline-legend">
-              {pipelineData.map((item) => (
-                <div key={item.name} className="legend-row">
-                  <span className="legend-dot" style={{ backgroundColor: item.color }}></span>
-                  <span className="legend-label">{item.name}</span>
-                  <span className="legend-count">{item.value}</span>
-                </div>
-              ))}
+              <div className="pipeline-legend">
+                {pipelineData.map((item) => (
+                  <div key={item.name} className="legend-row">
+                    <span className="legend-dot" style={{ backgroundColor: item.color }}></span>
+                    <span className="legend-label">{item.name}</span>
+                    <span className="legend-count">{item.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div style={{ padding: '28px 16px', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+              <p>No active internship applications submitted yet.</p>
+              <button
+                className="btn btn-outline btn-sm"
+                style={{ marginTop: '12px' }}
+                onClick={() => navigate('/internships')}
+              >
+                Browse & Apply Internships
+              </button>
+            </div>
+          )}
 
           <div className="progress-dossier">
             <div className="dossier-label">
@@ -558,9 +578,6 @@ export const Dashboard = () => {
     </div>
   );
 };
-
-// Simple compass icon alias for cleaner import
-const CompassIcon = ({ size }) => <Building2 size={size} />;
 
 export default Dashboard;
 
