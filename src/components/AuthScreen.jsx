@@ -4,13 +4,6 @@ import {
   GraduationCap,
   LogIn,
   UserPlus,
-  Mail,
-  Lock,
-  User,
-  Building,
-  Phone,
-  BookOpen,
-  Calendar,
   ArrowRight,
   ShieldCheck,
   Eye,
@@ -23,6 +16,7 @@ export const AuthScreen = () => {
 
   const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register'
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Login Form State
@@ -63,12 +57,10 @@ export const AuthScreen = () => {
 
   const graduationYears = ['2024', '2025', '2026', '2027', '2028', '2029'];
 
-  // Email format validator
   const isValidEmail = (email) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   };
 
-  // Phone validator (at least 10 digits)
   const isValidPhone = (phone) => {
     const cleaned = phone.replace(/\D/g, '');
     return cleaned.length >= 10;
@@ -79,13 +71,13 @@ export const AuthScreen = () => {
     const errors = {};
 
     if (!loginEmail.trim()) {
-      errors.loginEmail = 'Email address is required.';
+      errors.loginEmail = 'Email is required';
     } else if (!isValidEmail(loginEmail)) {
-      errors.loginEmail = 'Please enter a valid email address.';
+      errors.loginEmail = 'Enter a valid email address';
     }
 
     if (!loginPassword) {
-      errors.loginPassword = 'Password is required.';
+      errors.loginPassword = 'Password is required';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -110,45 +102,45 @@ export const AuthScreen = () => {
     const errors = {};
 
     if (!registerData.fullName.trim() || registerData.fullName.trim().length < 2) {
-      errors.fullName = 'Full Name is required (at least 2 characters).';
+      errors.fullName = 'Full name is required (min. 2 characters)';
     }
 
     if (!registerData.email.trim()) {
-      errors.email = 'Email address is required.';
+      errors.email = 'Email address is required';
     } else if (!isValidEmail(registerData.email)) {
-      errors.email = 'Please enter a valid email address.';
+      errors.email = 'Enter a valid email address';
     }
 
     if (!registerData.phone.trim()) {
-      errors.phone = 'Phone number is required.';
+      errors.phone = 'Phone number is required';
     } else if (!isValidPhone(registerData.phone)) {
-      errors.phone = 'Please enter a valid 10-digit contact number.';
+      errors.phone = 'Enter valid 10-digit number';
     }
 
     if (!registerData.collegeName.trim()) {
-      errors.collegeName = 'College / University name is required.';
+      errors.collegeName = 'College name is required';
     }
 
     if (!registerData.branch) {
-      errors.branch = 'Branch is required.';
+      errors.branch = 'Branch is required';
     }
 
     if (!registerData.semester) {
-      errors.semester = 'Semester is required.';
+      errors.semester = 'Semester is required';
     }
 
     if (!registerData.graduationYear) {
-      errors.graduationYear = 'Graduation Year is required.';
+      errors.graduationYear = 'Graduation year is required';
     }
 
     if (!registerData.password) {
-      errors.password = 'Password is required.';
+      errors.password = 'Password is required';
     } else if (registerData.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters long.';
+      errors.password = 'Min. 6 characters required';
     }
 
     if (registerData.password !== registerData.confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match.';
+      errors.confirmPassword = 'Passwords do not match';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -169,78 +161,84 @@ export const AuthScreen = () => {
   };
 
   return (
-    <div className="auth-page-container">
-      <div className="auth-card">
-        {/* Header branding */}
-        <div className="auth-brand-header">
-          <div className="brand-logo-circle">
-            <GraduationCap size={32} color="#ffffff" />
+    <div className="auth-wrapper">
+      <div className={`auth-card ${activeTab === 'register' ? 'auth-card-wide' : ''}`}>
+        {/* Brand Header */}
+        <div className="auth-header">
+          <div className="auth-logo-badge">
+            <GraduationCap size={22} className="auth-logo-icon" />
           </div>
-          <h1>InternTrack</h1>
-          <p className="auth-tagline">Smart Internship Management System &bull; B.Tech SIP Project</p>
+          <h1 className="auth-title">InternTrack</h1>
+          <p className="auth-subtitle">Student Internship Management System</p>
         </div>
 
         {/* Tab Switcher */}
-        <div className="auth-tab-row">
+        <div className="auth-segmented-control" role="tablist">
           <button
             type="button"
-            className={`auth-tab-btn ${activeTab === 'login' ? 'active' : ''}`}
+            role="tab"
+            aria-selected={activeTab === 'login'}
+            className={`auth-segment-btn ${activeTab === 'login' ? 'active' : ''}`}
             onClick={() => {
               setActiveTab('login');
               setFormErrors({});
             }}
           >
-            <LogIn size={16} /> Sign In
+            <LogIn size={15} /> Sign In
           </button>
           <button
             type="button"
-            className={`auth-tab-btn ${activeTab === 'register' ? 'active' : ''}`}
+            role="tab"
+            aria-selected={activeTab === 'register'}
+            className={`auth-segment-btn ${activeTab === 'register' ? 'active' : ''}`}
             onClick={() => {
               setActiveTab('register');
               setFormErrors({});
             }}
           >
-            <UserPlus size={16} /> Create Account
+            <UserPlus size={15} /> Create Account
           </button>
         </div>
 
         {/* Global Error Banner */}
         {formErrors.general && (
-          <div className="auth-alert-error">{formErrors.general}</div>
+          <div className="auth-error-banner" role="alert">
+            {formErrors.general}
+          </div>
         )}
 
-        {/* TAB 1: LOGIN */}
+        {/* TAB 1: SIGN IN */}
         {activeTab === 'login' && (
-          <form onSubmit={handleLoginSubmit} className="auth-form-body" noValidate>
-            <div className="form-group">
+          <form onSubmit={handleLoginSubmit} className="auth-form" noValidate>
+            <div className="auth-field">
               <label htmlFor="loginEmail">
-                <Mail size={14} /> Student Email Address <span className="required">*</span>
+                Student Email <span className="req-star">*</span>
               </label>
               <input
                 id="loginEmail"
                 type="email"
-                className={`form-control ${formErrors.loginEmail ? 'error' : ''}`}
-                placeholder="e.g. yourname@college.edu"
+                className={`auth-input ${formErrors.loginEmail ? 'input-error' : ''}`}
+                placeholder="name@college.edu"
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
                 autoComplete="email"
                 required
               />
               {formErrors.loginEmail && (
-                <span className="form-error-msg">{formErrors.loginEmail}</span>
+                <span className="auth-field-error">{formErrors.loginEmail}</span>
               )}
             </div>
 
-            <div className="form-group">
+            <div className="auth-field">
               <label htmlFor="loginPassword">
-                <Lock size={14} /> Password <span className="required">*</span>
+                Password <span className="req-star">*</span>
               </label>
-              <div className="password-input-wrapper">
+              <div className="auth-input-wrapper">
                 <input
                   id="loginPassword"
                   type={showPassword ? 'text' : 'password'}
-                  className={`form-control ${formErrors.loginPassword ? 'error' : ''}`}
-                  placeholder="Enter your account password"
+                  className={`auth-input ${formErrors.loginPassword ? 'input-error' : ''}`}
+                  placeholder="Enter your password"
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   autoComplete="current-password"
@@ -248,32 +246,33 @@ export const AuthScreen = () => {
                 />
                 <button
                   type="button"
-                  className="password-toggle-btn"
+                  className="auth-password-toggle"
                   onClick={() => setShowPassword(!showPassword)}
-                  aria-label="Toggle password visibility"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
               {formErrors.loginPassword && (
-                <span className="form-error-msg">{formErrors.loginPassword}</span>
+                <span className="auth-field-error">{formErrors.loginPassword}</span>
               )}
             </div>
 
             <button
               type="submit"
-              className="btn btn-primary auth-submit-btn"
+              className="auth-primary-btn"
               disabled={isSubmitting}
             >
-              <span>{isSubmitting ? 'Signing In...' : 'Sign In to Student Dashboard'}</span>
-              <ArrowRight size={16} />
+              <span>{isSubmitting ? 'Signing in...' : 'Sign In'}</span>
+              <ArrowRight size={15} />
             </button>
 
-            <div className="auth-switch-prompt">
-              <span>Don't have an account yet?</span>{' '}
+            <div className="auth-switch-footer">
+              <span>Don't have an account?</span>{' '}
               <button
                 type="button"
-                className="link-btn"
+                className="auth-link-btn"
                 onClick={() => {
                   setActiveTab('register');
                   setFormErrors({});
@@ -285,89 +284,93 @@ export const AuthScreen = () => {
           </form>
         )}
 
-        {/* TAB 2: REGISTER NEW STUDENT */}
+        {/* TAB 2: CREATE ACCOUNT */}
         {activeTab === 'register' && (
-          <form onSubmit={handleRegisterSubmit} className="auth-form-body" noValidate>
-            <p className="register-instruction">
-              Enter your student details below. A personal, isolated workspace will be created specifically for you.
-            </p>
-
-            <div className="form-row-2">
-              <div className="form-group">
+          <form onSubmit={handleRegisterSubmit} className="auth-form" noValidate>
+            <div className="auth-grid-2">
+              <div className="auth-field">
                 <label htmlFor="regFullName">
-                  <User size={14} /> Full Name <span className="required">*</span>
+                  Full Name <span className="req-star">*</span>
                 </label>
                 <input
                   id="regFullName"
                   type="text"
-                  className={`form-control ${formErrors.fullName ? 'error' : ''}`}
+                  className={`auth-input ${formErrors.fullName ? 'input-error' : ''}`}
                   placeholder="e.g. John Doe"
                   value={registerData.fullName}
                   onChange={(e) => setRegisterData({ ...registerData, fullName: e.target.value })}
                   required
                 />
-                {formErrors.fullName && <span className="form-error-msg">{formErrors.fullName}</span>}
+                {formErrors.fullName && (
+                  <span className="auth-field-error">{formErrors.fullName}</span>
+                )}
               </div>
 
-              <div className="form-group">
+              <div className="auth-field">
                 <label htmlFor="regEmail">
-                  <Mail size={14} /> Email Address <span className="required">*</span>
+                  Email Address <span className="req-star">*</span>
                 </label>
                 <input
                   id="regEmail"
                   type="email"
-                  className={`form-control ${formErrors.email ? 'error' : ''}`}
+                  className={`auth-input ${formErrors.email ? 'input-error' : ''}`}
                   placeholder="student@college.edu"
                   value={registerData.email}
                   onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
                   required
                 />
-                {formErrors.email && <span className="form-error-msg">{formErrors.email}</span>}
+                {formErrors.email && (
+                  <span className="auth-field-error">{formErrors.email}</span>
+                )}
               </div>
             </div>
 
-            <div className="form-row-2">
-              <div className="form-group">
+            <div className="auth-grid-2">
+              <div className="auth-field">
                 <label htmlFor="regPhone">
-                  <Phone size={14} /> Phone Number <span className="required">*</span>
+                  Phone Number <span className="req-star">*</span>
                 </label>
                 <input
                   id="regPhone"
                   type="tel"
-                  className={`form-control ${formErrors.phone ? 'error' : ''}`}
-                  placeholder="e.g. 9876543210"
+                  className={`auth-input ${formErrors.phone ? 'input-error' : ''}`}
+                  placeholder="10-digit number"
                   value={registerData.phone}
                   onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
                   required
                 />
-                {formErrors.phone && <span className="form-error-msg">{formErrors.phone}</span>}
+                {formErrors.phone && (
+                  <span className="auth-field-error">{formErrors.phone}</span>
+                )}
               </div>
 
-              <div className="form-group">
+              <div className="auth-field">
                 <label htmlFor="regCollege">
-                  <Building size={14} /> College Name <span className="required">*</span>
+                  College Name <span className="req-star">*</span>
                 </label>
                 <input
                   id="regCollege"
                   type="text"
-                  className={`form-control ${formErrors.collegeName ? 'error' : ''}`}
-                  placeholder="e.g. National Institute of Technology"
+                  className={`auth-input ${formErrors.collegeName ? 'input-error' : ''}`}
+                  placeholder="College / Institute"
                   value={registerData.collegeName}
                   onChange={(e) => setRegisterData({ ...registerData, collegeName: e.target.value })}
                   required
                 />
-                {formErrors.collegeName && <span className="form-error-msg">{formErrors.collegeName}</span>}
+                {formErrors.collegeName && (
+                  <span className="auth-field-error">{formErrors.collegeName}</span>
+                )}
               </div>
             </div>
 
-            <div className="form-row-2">
-              <div className="form-group">
+            <div className="auth-grid-2">
+              <div className="auth-field">
                 <label htmlFor="regBranch">
-                  <BookOpen size={14} /> Branch / Department <span className="required">*</span>
+                  Branch / Dept <span className="req-star">*</span>
                 </label>
                 <select
                   id="regBranch"
-                  className="form-control"
+                  className="auth-input"
                   value={registerData.branch}
                   onChange={(e) => setRegisterData({ ...registerData, branch: e.target.value })}
                 >
@@ -377,13 +380,13 @@ export const AuthScreen = () => {
                 </select>
               </div>
 
-              <div className="form-group">
+              <div className="auth-field">
                 <label htmlFor="regSemester">
-                  <GraduationCap size={14} /> Semester <span className="required">*</span>
+                  Semester <span className="req-star">*</span>
                 </label>
                 <select
                   id="regSemester"
-                  className="form-control"
+                  className="auth-input"
                   value={registerData.semester}
                   onChange={(e) => setRegisterData({ ...registerData, semester: e.target.value })}
                 >
@@ -394,13 +397,13 @@ export const AuthScreen = () => {
               </div>
             </div>
 
-            <div className="form-group">
+            <div className="auth-field">
               <label htmlFor="regGradYear">
-                <Calendar size={14} /> Graduation Year <span className="required">*</span>
+                Graduation Year <span className="req-star">*</span>
               </label>
               <select
                 id="regGradYear"
-                className="form-control"
+                className="auth-input"
                 value={registerData.graduationYear}
                 onChange={(e) => setRegisterData({ ...registerData, graduationYear: e.target.value })}
               >
@@ -410,58 +413,82 @@ export const AuthScreen = () => {
               </select>
             </div>
 
-            <div className="form-row-2">
-              <div className="form-group">
+            <div className="auth-grid-2">
+              <div className="auth-field">
                 <label htmlFor="regPassword">
-                  <Lock size={14} /> Password (Min. 6 chars) <span className="required">*</span>
+                  Password <span className="req-star">*</span>
                 </label>
-                <input
-                  id="regPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  className={`form-control ${formErrors.password ? 'error' : ''}`}
-                  placeholder="Create a password"
-                  value={registerData.password}
-                  onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
-                  autoComplete="new-password"
-                  required
-                />
-                {formErrors.password && <span className="form-error-msg">{formErrors.password}</span>}
+                <div className="auth-input-wrapper">
+                  <input
+                    id="regPassword"
+                    type={showPassword ? 'text' : 'password'}
+                    className={`auth-input ${formErrors.password ? 'input-error' : ''}`}
+                    placeholder="Min. 6 chars"
+                    value={registerData.password}
+                    onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
+                    autoComplete="new-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="auth-password-toggle"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {formErrors.password && (
+                  <span className="auth-field-error">{formErrors.password}</span>
+                )}
               </div>
 
-              <div className="form-group">
+              <div className="auth-field">
                 <label htmlFor="regConfirmPassword">
-                  <Lock size={14} /> Confirm Password <span className="required">*</span>
+                  Confirm Password <span className="req-star">*</span>
                 </label>
-                <input
-                  id="regConfirmPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  className={`form-control ${formErrors.confirmPassword ? 'error' : ''}`}
-                  placeholder="Re-enter password"
-                  value={registerData.confirmPassword}
-                  onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })}
-                  autoComplete="new-password"
-                  required
-                />
+                <div className="auth-input-wrapper">
+                  <input
+                    id="regConfirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    className={`auth-input ${formErrors.confirmPassword ? 'input-error' : ''}`}
+                    placeholder="Re-enter password"
+                    value={registerData.confirmPassword}
+                    onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })}
+                    autoComplete="new-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="auth-password-toggle"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
                 {formErrors.confirmPassword && (
-                  <span className="form-error-msg">{formErrors.confirmPassword}</span>
+                  <span className="auth-field-error">{formErrors.confirmPassword}</span>
                 )}
               </div>
             </div>
 
             <button
               type="submit"
-              className="btn btn-primary auth-submit-btn"
+              className="auth-primary-btn"
               disabled={isSubmitting}
             >
-              <span>{isSubmitting ? 'Creating Account...' : 'Complete Registration & Open Dashboard'}</span>
-              <ArrowRight size={16} />
+              <span>{isSubmitting ? 'Creating Account...' : 'Create Account'}</span>
+              <ArrowRight size={15} />
             </button>
 
-            <div className="auth-switch-prompt">
+            <div className="auth-switch-footer">
               <span>Already have an account?</span>{' '}
               <button
                 type="button"
-                className="link-btn"
+                className="auth-link-btn"
                 onClick={() => {
                   setActiveTab('login');
                   setFormErrors({});
@@ -473,18 +500,14 @@ export const AuthScreen = () => {
           </form>
         )}
 
-        {/* Academic Simulation Notice */}
-        <div className="academic-security-notice">
-          <div className="notice-icon-box">
-            <ShieldCheck size={16} color="#2563eb" />
-          </div>
-          <div className="notice-text">
-            <strong>Academic Project Simulation:</strong> This frontend-only application runs locally in your browser. Client-side SHA-256 hashing is used so passwords are never stored in plaintext in LocalStorage. Each student's records remain completely isolated.
-          </div>
+        {/* Small Academic Disclaimer */}
+        <div className="auth-disclaimer">
+          <ShieldCheck size={13} className="disclaimer-icon" />
+          <span>Academic demo project &bull; LocalStorage isolated &bull; SHA-256 hashed</span>
         </div>
 
-        <div className="auth-footer-note">
-          <p>InternTrack &bull; B.Tech 7th Semester Summer Internship Program (SIP) Capstone &copy; 2026</p>
+        <div className="auth-copyright">
+          <span>InternTrack &bull; B.Tech SIP Project &copy; 2026</span>
         </div>
       </div>
     </div>
