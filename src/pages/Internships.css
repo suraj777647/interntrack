@@ -1,0 +1,386 @@
+.internships-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.74rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.openings-count {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  background-color: #ffffff;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.openings-count strong {
+  color: var(--primary);
+}
+
+/* Filter Card */
+.filter-card {
+  padding: 16px 20px;
+}
+
+.search-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.search-input-box {
+  flex: 1;
+  min-width: 260px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-box-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--text-muted);
+}
+
+.search-input-box input {
+  width: 100%;
+  height: 42px;
+  padding: 0 36px 0 42px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--card-border);
+  background-color: #f8fafc;
+  font-size: 0.88rem;
+}
+
+.search-input-box input:focus {
+  background-color: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 12px;
+  font-size: 1.2rem;
+  color: var(--text-muted);
+}
+
+.filter-selects-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.select-wrapper select {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--card-border);
+  background-color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.select-wrapper select:focus {
+  border-color: var(--primary);
+}
+
+.reset-btn {
+  height: 38px;
+}
+
+/* Cards Grid */
+.internship-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+}
+
+.internship-card {
+  background: #ffffff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+.internship-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: #cbd5e1;
+}
+
+.card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.company-logo-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+}
+
+.top-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-heading-section {
+  margin-bottom: 12px;
+}
+
+.internship-role-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.3;
+}
+
+.company-location-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.company-name {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.dot-sep {
+  color: #cbd5e1;
+}
+
+.location-text {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.job-desc-snippet {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.meta-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+}
+
+.card-action-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: auto;
+}
+
+.deadline-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.deadline-label {
+  font-size: 0.68rem;
+  color: var(--text-light);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.deadline-val {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.action-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Modal details */
+.modal-title-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.modal-company-sub {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.modal-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.detail-section {
+  margin-bottom: 18px;
+}
+
+.detail-section h4 {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 8px;
+  border-left: 3px solid var(--primary);
+  padding-left: 8px;
+}
+
+.detail-section p {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.bullet-list {
+  list-style-type: disc;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.bullet-list.perks {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.bullet-list.perks li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.check-icon {
+  color: var(--success);
+  flex-shrink: 0;
+}
+
+/* Empty State */
+.empty-state-card {
+  text-align: center;
+  padding: 48px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.empty-icon {
+  color: var(--text-light);
+}
+
+.empty-state-card h3 {
+  font-size: 1.2rem;
+  color: var(--text-main);
+}
+
+.empty-state-card p {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  max-width: 400px;
+  margin-bottom: 12px;
+}

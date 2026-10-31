@@ -1,0 +1,245 @@
+.attendance-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Compliance Banner */
+.compliance-banner {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 24px;
+  border-radius: var(--radius-lg);
+  border: 1px solid transparent;
+}
+
+.banner-pass {
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.banner-fail {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+}
+
+.compliance-icon-wrap {
+  flex-shrink: 0;
+}
+
+.compliance-text h4 {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+
+.compliance-text p {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Att Stat Cards */
+.att-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.att-stat-icon-wrap {
+  width: 50px;
+  height: 50px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.att-stat-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.att-stat-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.att-stat-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.1;
+  margin: 3px 0;
+}
+
+.att-stat-sub {
+  font-size: 0.72rem;
+  color: var(--text-light);
+}
+
+/* Calendar Card */
+.calendar-card {
+  padding: 24px;
+}
+
+.calendar-legend-pills {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.leg-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.leg-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.bg-present { background-color: #22c55e; }
+.bg-absent { background-color: #ef4444; }
+.bg-leave { background-color: #f59e0b; }
+.bg-weekend { background-color: #94a3b8; }
+
+.calendar-week-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-top: 20px;
+  text-align: center;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.calendar-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.calendar-day-box {
+  min-height: 80px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.calendar-day-box:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+}
+
+.calendar-day-box.blank-day {
+  background-color: #f8fafc;
+  border-color: transparent;
+  cursor: default;
+}
+.calendar-day-box.blank-day:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.calendar-day-box.current-day {
+  border: 2px solid var(--primary);
+  background-color: #eff6ff;
+}
+
+.day-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.day-number {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.today-chip {
+  font-size: 0.62rem;
+  font-weight: 700;
+  background-color: var(--primary);
+  color: #ffffff;
+  padding: 1px 5px;
+  border-radius: var(--radius-full);
+}
+
+.day-status-indicator {
+  margin: 4px 0;
+}
+
+.status-pill {
+  display: inline-block;
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  text-transform: capitalize;
+}
+
+.status-pill.present { background-color: #dcfce7; color: #15803d; }
+.status-pill.absent { background-color: #fee2e2; color: #b91c1c; }
+.status-pill.leave { background-color: #fef3c7; color: #b45309; }
+.status-pill.weekend { background-color: #f1f5f9; color: #64748b; }
+
+.day-hours-snippet {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Table p-header */
+.p-header {
+  padding: 20px 24px 0;
+  margin-bottom: 12px;
+}
+
+.rec-note-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  max-width: 320px;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .calendar-day-box {
+    min-height: 60px;
+    padding: 4px;
+  }
+  .day-hours-snippet {
+    display: none;
+  }
+  .status-pill {
+    font-size: 0.58rem;
+    padding: 1px 3px;
+  }
+}
