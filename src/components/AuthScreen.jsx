@@ -359,3 +359,4 @@ export const AuthScreen = () => {
 };
 
 export default AuthScreen;
+

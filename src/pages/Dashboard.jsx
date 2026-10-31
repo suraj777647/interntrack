@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useInternTrack } from '../context/AppContext';
 import {
@@ -38,17 +38,40 @@ export const Dashboard = () => {
   const { profile, metrics, applications, tasks, diary, attendanceStats, attendance } = useInternTrack();
   const navigate = useNavigate();
 
-  // Weekly hours data for Recharts
-  const weeklyAttendanceData = [
-    { day: 'Mon (Oct 26)', hours: 8.5, status: 'Present' },
-    { day: 'Tue (Oct 27)', hours: 8.0, status: 'Present' },
-    { day: 'Wed (Oct 28)', hours: 8.5, status: 'Present' },
-    { day: 'Thu (Oct 29)', hours: 8.0, status: 'Present' },
-    { day: 'Fri (Oct 30)', hours: 7.5, status: 'Present' },
-    { day: 'Today (Oct 31)', hours: 8.0, status: 'Present' }
-  ];
+  // Dynamically compute weekly hours from this student's actual attendance records
+  const weeklyAttendanceData = useMemo(() => {
+    if (!attendance || attendance.length === 0) {
+      return [
+        { day: 'Mon', hours: 0, status: 'No Record' },
+        { day: 'Tue', hours: 0, status: 'No Record' },
+        { day: 'Wed', hours: 0, status: 'No Record' },
+        { day: 'Thu', hours: 0, status: 'No Record' },
+        { day: 'Fri', hours: 0, status: 'No Record' },
+        { day: 'Today', hours: 0, status: 'No Record' }
+      ];
+    }
+    // Take the last 6 records or map them cleanly
+    const recentLogs = attendance.slice(0, 6).reverse();
+    return recentLogs.map((log) => {
+      const parsedHours =
+        parseFloat(log.workingHours) ||
+        (log.status === 'present' || log.status === 'od' ? 8.0 : 0);
+      return {
+        day: `${log.day} (${log.date ? log.date.slice(5) : ''})`,
+        hours: parsedHours,
+        status:
+          log.status === 'present'
+            ? 'Present'
+            : log.status === 'od'
+            ? 'On-Duty'
+            : log.status === 'leave'
+            ? 'Leave'
+            : 'Absent'
+      };
+    });
+  }, [attendance]);
 
-  // Pipeline distribution data
+  // Pipeline distribution data (Personal to logged-in student)
   const statusCounts = {
     Selected: applications.filter((a) => a.status === 'Selected').length,
     Shortlisted: applications.filter((a) => a.status === 'Shortlisted').length,
@@ -65,41 +88,81 @@ export const Dashboard = () => {
     { name: 'Rejected', value: statusCounts.Rejected, color: '#dc2626' }
   ].filter((item) => item.value > 0);
 
-  // Recent combined activity feed
-  const recentActivities = [
-    {
-      id: 'act-1',
-      title: 'Offer Letter Verified',
-      desc: 'CloudScale Technologies internship confirmed for 6 months.',
-      time: 'Today',
-      type: 'success',
-      icon: Award
-    },
-    {
-      id: 'act-2',
-      title: 'Task Completed',
-      desc: 'Finished "Form Validation on Application Form".',
-      time: 'Yesterday',
-      type: 'primary',
-      icon: CheckCircle2
-    },
-    {
-      id: 'act-3',
-      title: 'SIP Diary Logged',
-      desc: 'Added entry for Sprint Planning & State Modularization.',
-      time: '2 days ago',
-      type: 'info',
-      icon: BookOpen
-    },
-    {
-      id: 'act-4',
-      title: 'Application Shortlisted',
-      desc: 'NextGen FinTech Solutions invited you for technical interview.',
-      time: '4 days ago',
-      type: 'purple',
-      icon: Sparkles
+  // Dynamically generated recent activities from this student's actual records
+  const recentActivities = useMemo(() => {
+    const list = [];
+
+    // Latest Application
+    if (applications.length > 0) {
+      const latestApp = applications[0];
+      list.push({
+        id: `act-app-${latestApp.id}`,
+        title: `Application: ${latestApp.status}`,
+        desc: `${latestApp.title} at ${latestApp.company}`,
+        time: latestApp.appliedDate,
+        type:
+          latestApp.status === 'Selected'
+            ? 'success'
+            : latestApp.status === 'Shortlisted'
+            ? 'purple'
+            : 'primary',
+        icon: Award
+      });
     }
-  ];
+
+    // Latest Completed or Active Task
+    if (tasks.length > 0) {
+      const latestTask = tasks.find((t) => t.status === 'Completed') || tasks[0];
+      list.push({
+        id: `act-task-${latestTask.id}`,
+        title: latestTask.status === 'Completed' ? 'Task Completed' : 'Task In Progress',
+        desc: latestTask.title,
+        time: latestTask.createdAt || 'Recent',
+        type: latestTask.status === 'Completed' ? 'success' : 'primary',
+        icon: CheckCircle2
+      });
+    }
+
+    // Latest Diary Entry
+    if (diary.length > 0) {
+      const latestDiary = diary[0];
+      list.push({
+        id: `act-diary-${latestDiary.id}`,
+        title: 'Work Diary Recorded',
+        desc: latestDiary.title,
+        time: latestDiary.date,
+        type: 'info',
+        icon: BookOpen
+      });
+    }
+
+    // Latest Document
+    if (documents.length > 0) {
+      const latestDoc = documents[0];
+      list.push({
+        id: `act-doc-${latestDoc.id}`,
+        title: 'Document Uploaded',
+        desc: `${latestDoc.name} (${latestDoc.category})`,
+        time: latestDoc.uploadedDate,
+        type: 'purple',
+        icon: Sparkles
+      });
+    }
+
+    // Fallback if empty workspace
+    if (list.length === 0) {
+      list.push({
+        id: 'act-init',
+        title: 'Personal Workspace Initialized',
+        desc: 'Start by exploring internships, logging attendance, or adding tasks.',
+        time: 'Today',
+        type: 'info',
+        icon: Sparkles
+      });
+    }
+
+    return list;
+  }, [applications, tasks, diary, documents]);
 
   return (
     <div className="dashboard-container">
@@ -425,33 +488,39 @@ export const Dashboard = () => {
           </div>
 
           <div className="task-preview-list">
-            {tasks.slice(0, 4).map((task) => (
-              <div key={task.id} className="task-preview-item">
-                <div
-                  className={`task-indicator ${
-                    task.status === 'Completed' ? 'completed' : task.priority.toLowerCase()
-                  }`}
-                ></div>
-                <div className="task-preview-info">
-                  <h5 className={task.status === 'Completed' ? 'line-through' : ''}>
-                    {task.title}
-                  </h5>
-                  <div className="task-preview-meta">
-                    <span className="badge badge-neutral">{task.category}</span>
-                    <span className="task-due">
-                      <Clock size={12} /> Due: {task.dueDate}
-                    </span>
+            {tasks.length === 0 ? (
+              <p className="empty-preview-text">
+                No tasks created yet. Click Task Board to add your deliverables.
+              </p>
+            ) : (
+              tasks.slice(0, 4).map((task) => (
+                <div key={task.id} className="task-preview-item">
+                  <div
+                    className={`task-indicator ${
+                      task.status === 'Completed' ? 'completed' : task.priority.toLowerCase()
+                    }`}
+                  ></div>
+                  <div className="task-preview-info">
+                    <h5 className={task.status === 'Completed' ? 'line-through' : ''}>
+                      {task.title}
+                    </h5>
+                    <div className="task-preview-meta">
+                      <span className="badge badge-neutral">{task.category}</span>
+                      <span className="task-due">
+                        <Clock size={12} /> Due: {task.dueDate}
+                      </span>
+                    </div>
                   </div>
+                  <span
+                    className={`badge ${
+                      task.status === 'Completed' ? 'badge-success' : 'badge-warning'
+                    }`}
+                  >
+                    {task.status}
+                  </span>
                 </div>
-                <span
-                  className={`badge ${
-                    task.status === 'Completed' ? 'badge-success' : 'badge-warning'
-                  }`}
-                >
-                  {task.status}
-                </span>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 

@@ -12,8 +12,8 @@ import {
 
 const AppContext = createContext();
 
-// Default registered user for initial start
-const defaultUser = {
+// Default demo user (Aarav Sharma)
+const defaultDemoUser = {
   id: 'usr-default',
   fullName: initialStudentProfile.fullName,
   email: initialStudentProfile.email,
@@ -36,7 +36,7 @@ const defaultUser = {
 };
 
 export const AppProvider = ({ children }) => {
-  // Safe LocalStorage loader helper
+  // Helper to read localStorage safely
   const loadStored = (key, fallback) => {
     try {
       const stored = localStorage.getItem(key);
@@ -47,32 +47,115 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // --- Users & Authentication State ---
-  const [users, setUsers] = useState(() => loadStored('interntrack_users', [defaultUser]));
+  // Helper to get personal user storage key
+  const getUserDataKey = (enrollmentNo) => {
+    return `interntrack_userdata_${(enrollmentNo || 'default').toUpperCase()}`;
+  };
+
+  // Helper to load personal workspace for a student
+  const loadUserPersonalData = (user) => {
+    if (!user || !user.enrollmentNo) {
+      return {
+        profile: defaultDemoUser,
+        applications: initialApplications,
+        tasks: initialTasks,
+        attendance: initialAttendanceRecords,
+        diary: initialDiaryEntries,
+        documents: initialDocuments,
+        notifications: initialNotifications
+      };
+    }
+
+    const key = getUserDataKey(user.enrollmentNo);
+    const saved = loadStored(key, null);
+
+    if (saved) {
+      return saved;
+    }
+
+    // If default demo user, initialize with sample dataset
+    if (user.enrollmentNo.toUpperCase() === defaultDemoUser.enrollmentNo.toUpperCase()) {
+      const initialData = {
+        profile: { ...defaultDemoUser, ...user },
+        applications: initialApplications,
+        tasks: initialTasks,
+        attendance: initialAttendanceRecords,
+        diary: initialDiaryEntries,
+        documents: initialDocuments,
+        notifications: initialNotifications
+      };
+      localStorage.setItem(key, JSON.stringify(initialData));
+      return initialData;
+    }
+
+    // For any newly registered student, initialize their clean personal workspace
+    const newStudentData = {
+      profile: user,
+      applications: [],
+      tasks: [
+        {
+          id: `task-${Date.now()}-1`,
+          title: 'Review SIP University Guidelines & Evaluation Criteria',
+          description: `Welcome to your personal SIP workspace, ${user.fullName}. Review mandatory deliverables required for 7th Sem evaluation.`,
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          priority: 'High',
+          category: 'Academic',
+          status: 'Pending',
+          createdAt: new Date().toISOString().split('T')[0]
+        }
+      ],
+      attendance: [],
+      diary: [],
+      documents: [],
+      notifications: [
+        {
+          id: `notif-${Date.now()}`,
+          title: `Welcome, ${user.fullName}! 🎓`,
+          message: 'Your personal internship workspace has been initialized. You can explore internships, log daily attendance, and track tasks.',
+          time: 'Just now',
+          read: false,
+          type: 'info'
+        }
+      ]
+    };
+    localStorage.setItem(key, JSON.stringify(newStudentData));
+    return newStudentData;
+  };
+
+  // --- 1. Users Registry & Current Logged-in User ---
+  const [users, setUsers] = useState(() => loadStored('interntrack_users', [defaultDemoUser]));
+
   const [currentUser, setCurrentUser] = useState(() => {
-    const savedUser = loadStored('interntrack_current_user', defaultUser);
+    const savedUser = loadStored('interntrack_current_user', defaultDemoUser);
     return savedUser;
   });
+
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return loadStored('interntrack_is_logged_in', true);
   });
 
-  // --- Core Application Data States ---
-  const [profile, setProfile] = useState(() => loadStored('interntrack_profile', currentUser));
-  const [internships, setInternships] = useState(() => loadStored('interntrack_internships', initialInternships));
-  const [applications, setApplications] = useState(() => loadStored('interntrack_applications', initialApplications));
-  const [tasks, setTasks] = useState(() => loadStored('interntrack_tasks', initialTasks));
-  const [attendance, setAttendance] = useState(() => loadStored('interntrack_attendance', initialAttendanceRecords));
-  const [diary, setDiary] = useState(() => loadStored('interntrack_diary', initialDiaryEntries));
-  const [documents, setDocuments] = useState(() => loadStored('interntrack_documents', initialDocuments));
-  const [notifications, setNotifications] = useState(() => loadStored('interntrack_notifications', initialNotifications));
+  // --- 2. Shared Global Internships Directory ---
+  const [internships, setInternships] = useState(() =>
+    loadStored('interntrack_internships', initialInternships)
+  );
+
+  // --- 3. Personal Student Workspace State (Isolated per Student) ---
+  const initialWorkspace = loadUserPersonalData(currentUser);
+
+  const [profile, setProfile] = useState(initialWorkspace.profile || currentUser);
+  const [applications, setApplications] = useState(initialWorkspace.applications || []);
+  const [tasks, setTasks] = useState(initialWorkspace.tasks || []);
+  const [attendance, setAttendance] = useState(initialWorkspace.attendance || []);
+  const [diary, setDiary] = useState(initialWorkspace.diary || []);
+  const [documents, setDocuments] = useState(initialWorkspace.documents || []);
+  const [notifications, setNotifications] = useState(initialWorkspace.notifications || []);
 
   // --- Global UI States ---
   const [toasts, setToasts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Sync to LocalStorage whenever state updates
+  // Sync users & global state
   useEffect(() => {
     localStorage.setItem('interntrack_users', JSON.stringify(users));
   }, [users]);
@@ -83,36 +166,37 @@ export const AppProvider = ({ children }) => {
   }, [currentUser, isLoggedIn]);
 
   useEffect(() => {
-    localStorage.setItem('interntrack_profile', JSON.stringify(profile));
-  }, [profile]);
-
-  useEffect(() => {
     localStorage.setItem('interntrack_internships', JSON.stringify(internships));
   }, [internships]);
 
+  // Sync personal student data to LocalStorage under user-specific key
   useEffect(() => {
-    localStorage.setItem('interntrack_applications', JSON.stringify(applications));
-  }, [applications]);
+    if (currentUser && currentUser.enrollmentNo) {
+      const personalData = {
+        profile,
+        applications,
+        tasks,
+        attendance,
+        diary,
+        documents,
+        notifications
+      };
+      localStorage.setItem(getUserDataKey(currentUser.enrollmentNo), JSON.stringify(personalData));
+    }
+  }, [currentUser, profile, applications, tasks, attendance, diary, documents, notifications]);
 
-  useEffect(() => {
-    localStorage.setItem('interntrack_tasks', JSON.stringify(tasks));
-  }, [tasks]);
-
-  useEffect(() => {
-    localStorage.setItem('interntrack_attendance', JSON.stringify(attendance));
-  }, [attendance]);
-
-  useEffect(() => {
-    localStorage.setItem('interntrack_diary', JSON.stringify(diary));
-  }, [diary]);
-
-  useEffect(() => {
-    localStorage.setItem('interntrack_documents', JSON.stringify(documents));
-  }, [documents]);
-
-  useEffect(() => {
-    localStorage.setItem('interntrack_notifications', JSON.stringify(notifications));
-  }, [notifications]);
+  // Switch student workspace when currentUser changes
+  const switchUserWorkspace = (targetUser) => {
+    const data = loadUserPersonalData(targetUser);
+    setCurrentUser(targetUser);
+    setProfile(data.profile || targetUser);
+    setApplications(data.applications || []);
+    setTasks(data.tasks || []);
+    setAttendance(data.attendance || []);
+    setDiary(data.diary || []);
+    setDocuments(data.documents || []);
+    setNotifications(data.notifications || []);
+  };
 
   // --- Toast Dispatcher ---
   const showToast = (title, message, type = 'success') => {
@@ -130,7 +214,6 @@ export const AppProvider = ({ children }) => {
 
   // --- Authentication Operations ---
   const registerUser = (userData) => {
-    // Generate clean student record
     const existing = users.find(
       (u) =>
         u.enrollmentNo.toLowerCase() === userData.enrollmentNo.toLowerCase() ||
@@ -138,7 +221,7 @@ export const AppProvider = ({ children }) => {
     );
 
     if (existing) {
-      showToast('Account Exists', 'A student with this Roll No. or Email is already registered.', 'error');
+      showToast('Student ID Exists', 'A student with this Roll No. or Email is already registered.', 'error');
       return { success: false, message: 'Student ID or email already registered' };
     }
 
@@ -158,20 +241,23 @@ export const AppProvider = ({ children }) => {
         userData.avatar ||
         `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userData.fullName)}&backgroundColor=2563eb`,
       currentInternship: userData.currentInternship || 'Software Engineering Intern',
-      mentorName: userData.mentorName || 'Dr. HOD / Faculty Coordinator',
+      mentorName: userData.mentorName || 'Faculty Guide / Department Coordinator',
       industryMentor: userData.industryMentor || 'Lead Engineer',
       skills: ['React.js', 'JavaScript', 'HTML5/CSS3', 'Git'],
       careerInterests: ['Web Development', 'Software Engineering'],
-      bio: `7th-semester engineering student at ${userData.collegeName}. Maintaining internship records for university SIP evaluation.`,
+      bio: `B.Tech student at ${userData.collegeName}. Maintaining internship records for university SIP evaluation.`,
       cgpa: userData.cgpa || '8.5 / 10.0'
     };
 
-    setUsers((prev) => [...prev, newUser]);
-    setCurrentUser(newUser);
-    setProfile(newUser);
+    const updatedUsers = [...users, newUser];
+    setUsers(updatedUsers);
+    localStorage.setItem('interntrack_users', JSON.stringify(updatedUsers));
+
+    // Switch to this new student's personal dashboard
+    switchUserWorkspace(newUser);
     setIsLoggedIn(true);
 
-    showToast('Registration Successful', `Welcome ${newUser.fullName}! Your student ID has been created.`, 'success');
+    showToast('Registration Complete', `Welcome, ${newUser.fullName}! Your personal student workspace is created.`, 'success');
     return { success: true, user: newUser };
   };
 
@@ -184,13 +270,12 @@ export const AppProvider = ({ children }) => {
     );
 
     if (foundUser) {
-      setCurrentUser(foundUser);
-      setProfile(foundUser);
+      switchUserWorkspace(foundUser);
       setIsLoggedIn(true);
-      showToast('Welcome Back', `Logged in as ${foundUser.fullName}`, 'success');
+      showToast('Welcome Back', `Logged into ${foundUser.fullName}'s Personal Dashboard.`, 'success');
       return { success: true, user: foundUser };
     } else {
-      showToast('Authentication Failed', 'Invalid Student Roll No / Email or Password.', 'error');
+      showToast('Authentication Error', 'Invalid Student Roll No / Email or Password.', 'error');
       return { success: false, message: 'Invalid credentials' };
     }
   };
@@ -200,7 +285,7 @@ export const AppProvider = ({ children }) => {
     showToast('Signed Out', 'You have been signed out of your student session.', 'info');
   };
 
-  // --- Profile Operations ---
+  // --- Profile Operations (Personal) ---
   const updateProfile = (updatedFields) => {
     const updated = { ...profile, ...updatedFields };
     setProfile(updated);
@@ -211,10 +296,10 @@ export const AppProvider = ({ children }) => {
       prev.map((u) => (u.enrollmentNo === updated.enrollmentNo || u.id === updated.id ? updated : u))
     );
 
-    showToast('Profile Updated', 'Student profile details updated successfully.', 'success');
+    showToast('Profile Updated', 'Student profile details saved to your personal record.', 'success');
   };
 
-  // --- Internships Operations (Add Custom Opportunity) ---
+  // --- Internships Directory (Global) ---
   const addInternship = (intData) => {
     const newInt = {
       ...intData,
@@ -224,7 +309,7 @@ export const AppProvider = ({ children }) => {
       logoColor: '#2563eb',
       responsibilities: Array.isArray(intData.responsibilities)
         ? intData.responsibilities
-        : (intData.responsibilities || 'Contribute to feature development and bug fixes.')
+        : (intData.responsibilities || 'Contribute to feature development and project requirements.')
             .split('\n')
             .filter(Boolean),
       requirements: Array.isArray(intData.requirements)
@@ -238,11 +323,11 @@ export const AppProvider = ({ children }) => {
     };
 
     setInternships((prev) => [newInt, ...prev]);
-    showToast('Opportunity Added', `"${newInt.title}" at ${newInt.company} listed successfully.`, 'success');
+    showToast('Opportunity Added', `"${newInt.title}" at ${newInt.company} listed in portal.`, 'success');
     return newInt;
   };
 
-  // --- Applications Operations ---
+  // --- Applications Operations (Personal to Logged-in Student) ---
   const addApplication = (newApp) => {
     const appWithId = {
       ...newApp,
@@ -291,7 +376,7 @@ export const AppProvider = ({ children }) => {
     showToast('Application Withdrawn', 'Internship application removed.', 'info');
   };
 
-  // --- Task Operations ---
+  // --- Tasks Operations (Personal to Logged-in Student) ---
   const addTask = (taskData) => {
     const newTask = {
       ...taskData,
@@ -300,7 +385,7 @@ export const AppProvider = ({ children }) => {
       status: taskData.status || 'Pending'
     };
     setTasks((prev) => [newTask, ...prev]);
-    showToast('Task Created', `"${newTask.title}" added to your task list.`, 'success');
+    showToast('Task Added', `"${newTask.title}" added to your task list.`, 'success');
   };
 
   const updateTask = (taskId, updatedFields) => {
@@ -312,7 +397,7 @@ export const AppProvider = ({ children }) => {
 
   const deleteTask = (taskId) => {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
-    showToast('Task Removed', 'Task deleted.', 'info');
+    showToast('Task Removed', 'Task deleted from your board.', 'info');
   };
 
   const toggleTaskStatus = (taskId) => {
@@ -327,7 +412,7 @@ export const AppProvider = ({ children }) => {
     );
   };
 
-  // --- Attendance Operations (Custom Date Logging) ---
+  // --- Attendance Operations (Personal to Logged-in Student) ---
   const logAttendance = (entryData) => {
     const targetDate = entryData.date;
     const isPresent = entryData.status === 'present' || entryData.status === 'od';
@@ -355,7 +440,7 @@ export const AppProvider = ({ children }) => {
       }
     });
 
-    showToast('Attendance Recorded', `Attendance for ${targetDate} logged as ${entryData.status.toUpperCase()}.`, 'success');
+    showToast('Attendance Logged', `Attendance for ${targetDate} recorded as ${entryData.status.toUpperCase()}.`, 'success');
   };
 
   const markTodayAttendance = (status = 'present', note = 'Daily internship check-in') => {
@@ -377,7 +462,7 @@ export const AppProvider = ({ children }) => {
     showToast('Record Updated', 'Attendance record modified.', 'info');
   };
 
-  // Dynamic Attendance Stats
+  // Dynamic Attendance Stats (Specific to Logged-in Student)
   const attendanceStats = (() => {
     const workingDays = attendance.filter((r) => r.status !== 'weekend');
     const presentDays = workingDays.filter((r) => r.status === 'present' || r.status === 'od').length;
@@ -395,7 +480,7 @@ export const AppProvider = ({ children }) => {
     };
   })();
 
-  // --- Internship Diary Operations ---
+  // --- Internship Diary Operations (Personal to Logged-in Student) ---
   const addDiaryEntry = (entryData) => {
     const newEntry = {
       ...entryData,
@@ -430,7 +515,7 @@ export const AppProvider = ({ children }) => {
     showToast('Diary Removed', 'Diary record deleted.', 'info');
   };
 
-  // --- Documents Operations ---
+  // --- Documents Operations (Personal to Logged-in Student) ---
   const addDocument = (docData) => {
     const newDoc = {
       ...docData,
@@ -451,15 +536,15 @@ export const AppProvider = ({ children }) => {
       }
     };
     setDocuments((prev) => [newDoc, ...prev]);
-    showToast('Document Uploaded', `"${docData.name}" saved to repository.`, 'success');
+    showToast('Document Uploaded', `"${docData.name}" saved to your repository.`, 'success');
   };
 
   const deleteDocument = (docId) => {
     setDocuments((prev) => prev.filter((d) => d.id !== docId));
-    showToast('Document Removed', 'Document deleted from repository.', 'info');
+    showToast('Document Removed', 'Document deleted from your vault.', 'info');
   };
 
-  // --- Notification Operations ---
+  // --- Notifications Operations (Personal to Logged-in Student) ---
   const markNotificationRead = (notifId) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === notifId ? { ...n, read: true } : n))
@@ -471,8 +556,7 @@ export const AppProvider = ({ children }) => {
     showToast('Notifications Cleared', 'All notifications marked as read.', 'info');
   };
 
-  // --- Reset & Fresh Start Functions ---
-  // Option 1: Clear all dummy data so the user can start with a 100% clean, fresh slate with their own data
+  // --- Reset & Fresh Start Operations for THIS Student ---
   const clearAllDataToFresh = () => {
     setApplications([]);
     setTasks([]);
@@ -481,32 +565,28 @@ export const AppProvider = ({ children }) => {
     setDocuments([]);
     setNotifications([
       {
-        id: 'notif-fresh-1',
-        title: 'Fresh Student Workspace Created',
-        message: 'All dummy records cleared. Start by adding your tasks, attendance, and diary entries.',
+        id: `notif-${Date.now()}`,
+        title: 'Personal Workspace Cleared',
+        message: 'Your personal dashboard is now completely fresh. Start adding your own tasks and attendance logs.',
         time: 'Just now',
         read: false,
         type: 'info'
       }
     ]);
-    showToast('Workspace Cleared', 'All sample data cleared. Ready for your own entries!', 'info');
+    showToast('Workspace Cleared', 'All records cleared for this student account. Ready for fresh data!', 'info');
   };
 
-  // Option 2: Restore realistic sample data for viva demonstration
   const resetDemoData = () => {
-    setProfile(defaultUser);
-    setCurrentUser(defaultUser);
-    setInternships(initialInternships);
     setApplications(initialApplications);
     setTasks(initialTasks);
     setAttendance(initialAttendanceRecords);
     setDiary(initialDiaryEntries);
     setDocuments(initialDocuments);
     setNotifications(initialNotifications);
-    showToast('Sample Data Loaded', 'Standard academic demonstration records restored.', 'info');
+    showToast('Sample Records Loaded', 'Standard academic demonstration records loaded into your workspace.', 'info');
   };
 
-  // Computed summary metrics
+  // Computed summary metrics for THIS logged-in student's Personal Dashboard
   const metrics = {
     totalApplications: applications.length,
     activeInternships: applications.filter((a) => a.status === 'Selected').length,

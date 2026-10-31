@@ -461,6 +461,13 @@
   gap: 12px;
 }
 
+.empty-preview-text {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  padding: 16px 0;
+  text-align: center;
+}
+
 .task-preview-item {
   display: flex;
   align-items: center;
