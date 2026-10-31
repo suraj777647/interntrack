@@ -181,7 +181,7 @@ export const Dashboard = () => {
             <span>B.Tech 7th Sem Summer Internship Program (SIP)</span>
           </div>
           <h1 className="welcome-title">
-            Welcome back, <span className="highlight-name">{profile.fullName}</span> 👋
+            Welcome back, <span className="highlight-name">{profile?.fullName || 'Student'}</span> 👋
           </h1>
           <p className="welcome-sub">
             Monitor your ongoing internship milestones, manage daily tasks, track college attendance, and maintain your SIP work diary.
@@ -190,17 +190,17 @@ export const Dashboard = () => {
           <div className="profile-quick-stats">
             <div className="p-stat">
               <span className="p-label">Active Internship</span>
-              <span className="p-val">{profile.currentInternship}</span>
+              <span className="p-val">{profile?.currentInternship || 'Not Assigned'}</span>
             </div>
             <div className="p-stat-divider"></div>
             <div className="p-stat">
               <span className="p-label">Faculty Guide</span>
-              <span className="p-val">{profile.mentorName}</span>
+              <span className="p-val">{profile?.mentorName || 'Faculty Guide'}</span>
             </div>
             <div className="p-stat-divider"></div>
             <div className="p-stat">
               <span className="p-label">Enrollment No.</span>
-              <span className="p-val font-mono">{profile.enrollmentNo}</span>
+              <span className="p-val font-mono">{profile?.enrollmentNo || 'SIP-2026'}</span>
             </div>
           </div>
         </div>

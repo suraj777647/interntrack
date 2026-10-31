@@ -30,13 +30,13 @@ export const ApplyInternship = () => {
   // Form State
   const [formData, setFormData] = useState({
     internshipId: selectedParamId,
-    candidateName: profile.fullName || '',
-    candidateEmail: profile.email || '',
-    candidatePhone: profile.phone || '',
-    college: profile.collegeName || '',
-    course: `${profile.degree} - ${profile.branch} (${profile.semester})`,
-    skills: profile.skills ? profile.skills.join(', ') : '',
-    resumeFileName: 'Resume_Aarav_Sharma_v3.pdf',
+    candidateName: profile?.fullName || '',
+    candidateEmail: profile?.email || '',
+    candidatePhone: profile?.phone || '',
+    college: profile?.collegeName || '',
+    course: `${profile?.degree || 'B.Tech'} - ${profile?.branch || 'Engineering'} (${profile?.semester || '7th Semester'})`,
+    skills: profile?.skills ? profile.skills.join(', ') : '',
+    resumeFileName: profile?.fullName ? `Resume_${profile.fullName.replace(/\s+/g, '_')}.pdf` : 'Student_Resume.pdf',
     resumeSize: '1.2 MB',
     coverLetter: ''
   });
@@ -45,6 +45,22 @@ export const ApplyInternship = () => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedApp, setSubmittedApp] = useState(null);
+
+  // Sync profile data when available or updated
+  useEffect(() => {
+    if (profile && profile.fullName) {
+      setFormData((prev) => ({
+        ...prev,
+        candidateName: prev.candidateName || profile.fullName,
+        candidateEmail: prev.candidateEmail || profile.email,
+        candidatePhone: prev.candidatePhone || profile.phone,
+        college: prev.college || profile.collegeName,
+        course: prev.course || `${profile.degree || 'B.Tech'} - ${profile.branch || 'Engineering'} (${profile.semester || '7th Semester'})`,
+        skills: prev.skills || (profile.skills ? profile.skills.join(', ') : ''),
+        resumeFileName: prev.resumeFileName === 'Student_Resume.pdf' ? `Resume_${profile.fullName.replace(/\s+/g, '_')}.pdf` : prev.resumeFileName
+      }));
+    }
+  }, [profile]);
 
   // Sync param if changed
   useEffect(() => {
@@ -279,7 +295,7 @@ export const ApplyInternship = () => {
                   value={formData.candidateName}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="e.g. Aarav Sharma"
+                  placeholder="Enter your full name"
                 />
                 {errors.candidateName && (
                   <span className="form-error-msg">{errors.candidateName}</span>

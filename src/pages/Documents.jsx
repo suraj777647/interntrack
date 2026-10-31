@@ -118,7 +118,7 @@ export const Documents = () => {
     const blob = new Blob(
       [
         `====================================================\n` +
-        `APEX INSTITUTE OF TECHNOLOGY & MANAGEMENT\n` +
+        `${(profile?.collegeName || 'ACADEMIC INSTITUTION').toUpperCase()}\n` +
         `B.Tech 7th Semester Summer Internship Program (SIP)\n` +
         `====================================================\n\n` +
         `Document: ${doc.name}\n` +
@@ -419,7 +419,7 @@ export const Documents = () => {
 
                 {/* Official Letterhead / Header */}
                 <div className="doc-letterhead">
-                  <div className="doc-inst-title">APEX INSTITUTE OF TECHNOLOGY & MANAGEMENT</div>
+                  <div className="doc-inst-title">{(profile?.collegeName || 'ACADEMIC INSTITUTION').toUpperCase()}</div>
                   <div className="doc-inst-sub">Affiliated to State Technological University &bull; Summer Internship Program</div>
                   <div className="doc-divider-line"></div>
                 </div>

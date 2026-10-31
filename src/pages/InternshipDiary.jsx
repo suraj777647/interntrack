@@ -470,8 +470,8 @@ export const InternshipDiary = () => {
 
             <div className="modal-body printable-area">
               <div className="academic-report-header">
-                <h2>APEX INSTITUTE OF TECHNOLOGY & MANAGEMENT</h2>
-                <h4>DEPARTMENT OF COMPUTER SCIENCE & ENGINEERING</h4>
+                <h2>{(profile?.collegeName || 'ACADEMIC INSTITUTION').toUpperCase()}</h2>
+                <h4>DEPARTMENT OF {(profile?.branch || 'ENGINEERING').toUpperCase()}</h4>
                 <p className="report-sub">
                   B.Tech 7th Semester &bull; Summer Internship Program (SIP) Work Diary Dossier
                 </p>

@@ -126,10 +126,10 @@ export const Sidebar = () => {
         <div className="sidebar-footer">
           <button className="logout-btn" onClick={handleLogout}>
             <LogOut size={18} className="logout-icon" />
-            <span>Sign Out / Switch ID</span>
+            <span>Sign Out</span>
           </button>
           <div className="footer-meta">
-            <p>{profile.collegeName || 'Engineering College'} &copy; 2026</p>
+            <p>{profile?.collegeName || 'Engineering College'} &copy; 2026</p>
             <p className="academic-viva">B.Tech 7th Sem SIP Portal</p>
           </div>
         </div>

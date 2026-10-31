@@ -1,41 +1,54 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import {
-  initialStudentProfile,
-  initialInternships,
-  initialApplications,
-  initialTasks,
-  initialAttendanceRecords,
-  initialDiaryEntries,
-  initialDocuments,
-  initialNotifications
-} from '../data/demoData';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { initialInternships } from '../data/demoData';
+import { hashPassword } from '../utils/security';
 
 const AppContext = createContext();
 
-// Default demo user (Aarav Sharma)
-const defaultDemoUser = {
-  id: 'usr-default',
-  fullName: initialStudentProfile.fullName,
-  email: initialStudentProfile.email,
-  phone: initialStudentProfile.phone,
-  enrollmentNo: initialStudentProfile.enrollmentNo,
-  collegeName: initialStudentProfile.collegeName,
-  universityName: initialStudentProfile.universityName,
-  degree: initialStudentProfile.degree,
-  branch: initialStudentProfile.branch,
-  semester: initialStudentProfile.semester,
-  password: 'password123',
-  avatar: initialStudentProfile.avatar,
-  currentInternship: initialStudentProfile.currentInternship,
-  mentorName: initialStudentProfile.mentorName,
-  industryMentor: initialStudentProfile.industryMentor,
-  skills: initialStudentProfile.skills || [],
-  careerInterests: initialStudentProfile.careerInterests || [],
-  bio: initialStudentProfile.bio || '',
-  cgpa: initialStudentProfile.cgpa || '8.78 / 10.0'
+// Cleanup obsolete Aarav / demo data from LocalStorage
+const cleanupLegacyDemoData = () => {
+  try {
+    const legacyKeys = [
+      'interntrack_userdata_2021BTCS084',
+      'interntrack_userdata_DEFAULT',
+      'interntrack_userdata_USR-DEFAULT'
+    ];
+    legacyKeys.forEach((k) => localStorage.removeItem(k));
+
+    // Remove legacy users if they contain Aarav or old test data
+    const rawUsers = localStorage.getItem('interntrack_users');
+    if (rawUsers && (rawUsers.includes('Aarav') || rawUsers.includes('2021BTCS084') || rawUsers.includes('Suraj'))) {
+      localStorage.removeItem('interntrack_users');
+    }
+
+    const rawCurrent = localStorage.getItem('interntrack_current_user');
+    if (rawCurrent && (rawCurrent.includes('Aarav') || rawCurrent.includes('2021BTCS084') || rawCurrent.includes('Suraj'))) {
+      localStorage.removeItem('interntrack_current_user');
+      localStorage.removeItem('interntrack_is_logged_in');
+    }
+
+    // Clean any legacy keys containing Aarav
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('interntrack_userdata_') || k.startsWith('interntrack_data_'))) {
+        const val = localStorage.getItem(k);
+        if (val && (val.includes('Aarav') || val.includes('2021BTCS084'))) {
+          keysToRemove.push(k);
+        }
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch (err) {
+    console.warn('Legacy data cleanup error:', err);
+  }
 };
 
 export const AppProvider = ({ children }) => {
+  // Execute legacy cleanup once on startup
+  useEffect(() => {
+    cleanupLegacyDemoData();
+  }, []);
+
   // Safe LocalStorage helper with strict null/undefined filtering
   const loadStored = (key, fallback) => {
     try {
@@ -54,161 +67,163 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // Safe user personal key
-  const getUserDataKey = (enrollmentNo) => {
-    const safeId = (enrollmentNo || defaultDemoUser.enrollmentNo).toString().trim().toUpperCase();
-    return `interntrack_userdata_${safeId}`;
+  // Helper: Get user storage key
+  const getUserStorageKey = (userId) => {
+    return `interntrack_data_${userId}`;
   };
 
-  // Helper to load personal workspace for a student
-  const loadUserPersonalData = (user) => {
-    const safeUser = (user && user.enrollmentNo) ? user : defaultDemoUser;
-    const key = getUserDataKey(safeUser.enrollmentNo);
-    const saved = loadStored(key, null);
-
-    if (saved && typeof saved === 'object') {
-      return {
-        profile: { ...defaultDemoUser, ...(saved.profile || safeUser) },
-        applications: Array.isArray(saved.applications) ? saved.applications : [],
-        tasks: Array.isArray(saved.tasks) ? saved.tasks : [],
-        attendance: Array.isArray(saved.attendance) ? saved.attendance : [],
-        diary: Array.isArray(saved.diary) ? saved.diary : [],
-        documents: Array.isArray(saved.documents) ? saved.documents : [],
-        notifications: Array.isArray(saved.notifications) ? saved.notifications : []
-      };
-    }
-
-    // Default demo user gets rich pre-seeded records
-    if (safeUser.enrollmentNo.toUpperCase() === defaultDemoUser.enrollmentNo.toUpperCase()) {
-      const initialData = {
-        profile: { ...defaultDemoUser, ...safeUser },
-        applications: initialApplications,
-        tasks: initialTasks,
-        attendance: initialAttendanceRecords,
-        diary: initialDiaryEntries,
-        documents: initialDocuments,
-        notifications: initialNotifications
-      };
-      try {
-        localStorage.setItem(key, JSON.stringify(initialData));
-      } catch (e) {}
-      return initialData;
-    }
-
-    // Newly registered student gets clean personal workspace
-    const newStudentData = {
-      profile: { ...defaultDemoUser, ...safeUser },
+  // Helper: Build default clean data for a new student
+  const createDefaultUserData = (account) => {
+    const safeName = account.fullName || 'Student';
+    return {
+      profile: {
+        id: account.id,
+        fullName: safeName,
+        email: account.email,
+        phone: account.phone || '',
+        collegeName: account.collegeName || '',
+        universityName: account.universityName || 'State Technological University',
+        degree: account.degree || 'Bachelor of Technology (B.Tech)',
+        branch: account.branch || 'Computer Science & Engineering',
+        semester: account.semester || '7th Semester',
+        graduationYear: account.graduationYear || '2026',
+        enrollmentNo: `SIP-${account.id.slice(-4).toUpperCase()}`,
+        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(safeName)}&backgroundColor=2563eb`,
+        currentInternship: 'Not Assigned',
+        mentorName: 'Faculty Guide',
+        industryMentor: 'Industry Lead',
+        skills: [],
+        careerInterests: [],
+        bio: `Student at ${account.collegeName || 'College'}. Maintaining internship records for B.Tech Summer Internship Program (SIP).`,
+        cgpa: '',
+        socialLinks: { github: '', linkedin: '', portfolio: '' }
+      },
       applications: [],
-      tasks: [
-        {
-          id: `task-${Date.now()}-1`,
-          title: 'Review SIP University Guidelines & Evaluation Criteria',
-          description: `Welcome to your personal SIP workspace, ${safeUser.fullName}. Review mandatory deliverables required for 7th Sem evaluation.`,
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          priority: 'High',
-          category: 'Academic',
-          status: 'Pending',
-          createdAt: new Date().toISOString().split('T')[0]
-        }
-      ],
+      tasks: [],
       attendance: [],
       diary: [],
       documents: [],
       notifications: [
         {
           id: `notif-${Date.now()}`,
-          title: `Welcome, ${safeUser.fullName}! 🎓`,
-          message: 'Your personal internship workspace has been initialized. You can explore internships, log daily attendance, and track tasks.',
+          title: `Welcome, ${safeName}! 🎓`,
+          message: 'Your personal internship management portal is ready. You can explore sample listings, submit applications, manage tasks, and log daily attendance.',
           time: 'Just now',
           read: false,
           type: 'info'
         }
       ]
     };
-    try {
-      localStorage.setItem(key, JSON.stringify(newStudentData));
-    } catch (e) {}
-    return newStudentData;
   };
 
-  // --- 1. Users Registry & Current Logged-in User ---
-  const [users, setUsers] = useState(() => {
-    const loaded = loadStored('interntrack_users', [defaultDemoUser]);
-    return Array.isArray(loaded) && loaded.length > 0 ? loaded : [defaultDemoUser];
+  // --- 1. Registered Student Accounts ---
+  const [accounts, setAccounts] = useState(() => {
+    const stored = loadStored('interntrack_accounts', []);
+    return Array.isArray(stored) ? stored : [];
   });
 
-  const [currentUser, setCurrentUser] = useState(() => {
-    const savedUser = loadStored('interntrack_current_user', defaultDemoUser);
-    if (!savedUser || typeof savedUser !== 'object' || !savedUser.enrollmentNo) {
-      return defaultDemoUser;
-    }
-    return { ...defaultDemoUser, ...savedUser };
+  // --- 2. Active Session ---
+  const [session, setSession] = useState(() => {
+    return loadStored('interntrack_session', null);
   });
 
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    const saved = loadStored('interntrack_is_logged_in', true);
-    return typeof saved === 'boolean' ? saved : true;
+  // Derived current account based on session
+  const activeAccount = useMemo(() => {
+    if (!session || !session.userId) return null;
+    return accounts.find((a) => a.id === session.userId) || null;
+  }, [session, accounts]);
+
+  const isLoggedIn = Boolean(activeAccount);
+
+  // --- 3. Current User's Personal Workspace State ---
+  const [profile, setProfile] = useState(() => {
+    if (!activeAccount) return null;
+    const key = getUserStorageKey(activeAccount.id);
+    const saved = loadStored(key, null);
+    return saved?.profile || createDefaultUserData(activeAccount).profile;
   });
 
-  // --- 2. Shared Global Internships Directory ---
+  const [applications, setApplications] = useState(() => {
+    if (!activeAccount) return [];
+    const key = getUserStorageKey(activeAccount.id);
+    const saved = loadStored(key, null);
+    return Array.isArray(saved?.applications) ? saved.applications : [];
+  });
+
+  const [tasks, setTasks] = useState(() => {
+    if (!activeAccount) return [];
+    const key = getUserStorageKey(activeAccount.id);
+    const saved = loadStored(key, null);
+    return Array.isArray(saved?.tasks) ? saved.tasks : [];
+  });
+
+  const [attendance, setAttendance] = useState(() => {
+    if (!activeAccount) return [];
+    const key = getUserStorageKey(activeAccount.id);
+    const saved = loadStored(key, null);
+    return Array.isArray(saved?.attendance) ? saved.attendance : [];
+  });
+
+  const [diary, setDiary] = useState(() => {
+    if (!activeAccount) return [];
+    const key = getUserStorageKey(activeAccount.id);
+    const saved = loadStored(key, null);
+    return Array.isArray(saved?.diary) ? saved.diary : [];
+  });
+
+  const [documents, setDocuments] = useState(() => {
+    if (!activeAccount) return [];
+    const key = getUserStorageKey(activeAccount.id);
+    const saved = loadStored(key, null);
+    return Array.isArray(saved?.documents) ? saved.documents : [];
+  });
+
+  const [notifications, setNotifications] = useState(() => {
+    if (!activeAccount) return [];
+    const key = getUserStorageKey(activeAccount.id);
+    const saved = loadStored(key, null);
+    return Array.isArray(saved?.notifications) ? saved.notifications : [];
+  });
+
+  // --- 4. Global Sample Internships Directory ---
   const [internships, setInternships] = useState(() => {
-    const loaded = loadStored('interntrack_internships', initialInternships);
+    const loaded = loadStored('interntrack_sample_internships', initialInternships);
     return Array.isArray(loaded) && loaded.length > 0 ? loaded : initialInternships;
   });
 
-  // --- 3. Personal Student Workspace State (Isolated per Student) ---
-  const initialWorkspace = loadUserPersonalData(currentUser);
-
-  const [profile, setProfile] = useState(() => {
-    return initialWorkspace?.profile || currentUser || defaultDemoUser;
-  });
-  const [applications, setApplications] = useState(() => {
-    return Array.isArray(initialWorkspace?.applications) ? initialWorkspace.applications : [];
-  });
-  const [tasks, setTasks] = useState(() => {
-    return Array.isArray(initialWorkspace?.tasks) ? initialWorkspace.tasks : [];
-  });
-  const [attendance, setAttendance] = useState(() => {
-    return Array.isArray(initialWorkspace?.attendance) ? initialWorkspace.attendance : [];
-  });
-  const [diary, setDiary] = useState(() => {
-    return Array.isArray(initialWorkspace?.diary) ? initialWorkspace.diary : [];
-  });
-  const [documents, setDocuments] = useState(() => {
-    return Array.isArray(initialWorkspace?.documents) ? initialWorkspace.documents : [];
-  });
-  const [notifications, setNotifications] = useState(() => {
-    return Array.isArray(initialWorkspace?.notifications) ? initialWorkspace.notifications : [];
-  });
-
-  // --- Global UI States ---
+  // --- 5. Global UI States ---
   const [toasts, setToasts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Sync users & global state
+  // Sync accounts to LocalStorage
   useEffect(() => {
     try {
-      localStorage.setItem('interntrack_users', JSON.stringify(users));
+      localStorage.setItem('interntrack_accounts', JSON.stringify(accounts));
     } catch (e) {}
-  }, [users]);
+  }, [accounts]);
 
+  // Sync session to LocalStorage
   useEffect(() => {
     try {
-      localStorage.setItem('interntrack_current_user', JSON.stringify(currentUser));
-      localStorage.setItem('interntrack_is_logged_in', JSON.stringify(isLoggedIn));
+      if (session) {
+        localStorage.setItem('interntrack_session', JSON.stringify(session));
+      } else {
+        localStorage.removeItem('interntrack_session');
+      }
     } catch (e) {}
-  }, [currentUser, isLoggedIn]);
+  }, [session]);
 
+  // Sync sample internships
   useEffect(() => {
     try {
-      localStorage.setItem('interntrack_internships', JSON.stringify(internships));
+      localStorage.setItem('interntrack_sample_internships', JSON.stringify(internships));
     } catch (e) {}
   }, [internships]);
 
-  // Sync personal student data to LocalStorage under user-specific key
+  // Save personal student data to LocalStorage under user-specific key
   useEffect(() => {
-    if (currentUser && currentUser.enrollmentNo) {
+    if (activeAccount && activeAccount.id && profile) {
       const personalData = {
         profile,
         applications,
@@ -219,23 +234,22 @@ export const AppProvider = ({ children }) => {
         notifications
       };
       try {
-        localStorage.setItem(getUserDataKey(currentUser.enrollmentNo), JSON.stringify(personalData));
-      } catch (e) {}
+        localStorage.setItem(getUserStorageKey(activeAccount.id), JSON.stringify(personalData));
+      } catch (e) {
+        console.warn('Error saving user data:', e);
+      }
     }
-  }, [currentUser, profile, applications, tasks, attendance, diary, documents, notifications]);
+  }, [activeAccount, profile, applications, tasks, attendance, diary, documents, notifications]);
 
-  // Switch student workspace when currentUser changes
-  const switchUserWorkspace = (targetUser) => {
-    const safeTarget = { ...defaultDemoUser, ...(targetUser || {}) };
-    const data = loadUserPersonalData(safeTarget);
-    setCurrentUser(safeTarget);
-    setProfile(data.profile || safeTarget);
-    setApplications(Array.isArray(data.applications) ? data.applications : []);
-    setTasks(Array.isArray(data.tasks) ? data.tasks : []);
-    setAttendance(Array.isArray(data.attendance) ? data.attendance : []);
-    setDiary(Array.isArray(data.diary) ? data.diary : []);
-    setDocuments(Array.isArray(data.documents) ? data.documents : []);
-    setNotifications(Array.isArray(data.notifications) ? data.notifications : []);
+  // Load a user's data into active React state
+  const loadUserDataIntoState = (account, userData) => {
+    setProfile(userData.profile || createDefaultUserData(account).profile);
+    setApplications(Array.isArray(userData.applications) ? userData.applications : []);
+    setTasks(Array.isArray(userData.tasks) ? userData.tasks : []);
+    setAttendance(Array.isArray(userData.attendance) ? userData.attendance : []);
+    setDiary(Array.isArray(userData.diary) ? userData.diary : []);
+    setDocuments(Array.isArray(userData.documents) ? userData.documents : []);
+    setNotifications(Array.isArray(userData.notifications) ? userData.notifications : []);
   };
 
   // --- Toast Dispatcher ---
@@ -253,99 +267,155 @@ export const AppProvider = ({ children }) => {
   };
 
   // --- Authentication Operations ---
-  const registerUser = (userData) => {
-    const safeUsers = Array.isArray(users) ? users : [];
-    const existing = safeUsers.find(
-      (u) =>
-        u.enrollmentNo?.toLowerCase() === userData.enrollmentNo?.toLowerCase() ||
-        u.email?.toLowerCase() === userData.email?.toLowerCase()
-    );
+  const registerUser = async (signupData) => {
+    const email = (signupData.email || '').trim().toLowerCase();
+    const fullName = (signupData.fullName || '').trim();
+    const phone = (signupData.phone || '').trim();
+    const collegeName = (signupData.collegeName || '').trim();
+    const password = signupData.password || '';
 
-    if (existing) {
-      showToast('Student ID Exists', 'A student with this Roll No. or Email is already registered.', 'error');
-      return { success: false, message: 'Student ID or email already registered' };
+    if (!email || !fullName || !collegeName || !password) {
+      showToast('Validation Error', 'Please fill in all mandatory fields.', 'error');
+      return { success: false, message: 'Mandatory fields missing' };
     }
 
-    const newUser = {
-      ...defaultDemoUser,
-      id: `usr-${Date.now()}`,
-      fullName: (userData.fullName || 'Student').trim(),
-      email: (userData.email || 'student@college.edu').trim(),
-      phone: userData.phone || '+91 98765 00000',
-      enrollmentNo: (userData.enrollmentNo || `STU-${Date.now().toString().slice(-4)}`).trim().toUpperCase(),
-      collegeName: (userData.collegeName || 'Engineering College').trim(),
-      universityName: userData.universityName || 'State Technological University',
-      degree: userData.degree || 'Bachelor of Technology (B.Tech)',
-      branch: userData.branch || 'Computer Science & Engineering',
-      semester: userData.semester || '7th Semester',
-      password: userData.password || 'password123',
-      avatar:
-        userData.avatar ||
-        `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userData.fullName || 'User')}&backgroundColor=2563eb`,
-      currentInternship: userData.currentInternship || 'Software Engineering Intern',
-      mentorName: userData.mentorName || 'Faculty Guide / Department Coordinator',
-      industryMentor: userData.industryMentor || 'Lead Engineer',
-      skills: ['React.js', 'JavaScript', 'HTML5/CSS3', 'Git'],
-      careerInterests: ['Web Development', 'Software Engineering'],
-      bio: `B.Tech student at ${userData.collegeName || 'College'}. Maintaining internship records for university SIP evaluation.`,
-      cgpa: userData.cgpa || '8.5 / 10.0'
+    const existing = accounts.find((a) => a.email.toLowerCase() === email);
+    if (existing) {
+      showToast('Account Exists', 'An account with this email is already registered. Please sign in.', 'error');
+      return { success: false, message: 'Email already registered' };
+    }
+
+    const passwordHash = await hashPassword(password);
+    const newAccount = {
+      id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      email,
+      fullName,
+      phone,
+      collegeName,
+      branch: signupData.branch || 'Computer Science & Engineering',
+      semester: signupData.semester || '7th Semester',
+      graduationYear: signupData.graduationYear || '2026',
+      passwordHash,
+      createdAt: new Date().toISOString()
     };
 
-    const updatedUsers = [...safeUsers, newUser];
-    setUsers(updatedUsers);
+    const updatedAccounts = [...accounts, newAccount];
+    setAccounts(updatedAccounts);
     try {
-      localStorage.setItem('interntrack_users', JSON.stringify(updatedUsers));
+      localStorage.setItem('interntrack_accounts', JSON.stringify(updatedAccounts));
     } catch (e) {}
 
-    // Switch to this new student's personal dashboard
-    switchUserWorkspace(newUser);
-    setIsLoggedIn(true);
+    // Initialize user personal data
+    const initialData = createDefaultUserData(newAccount);
+    try {
+      localStorage.setItem(getUserStorageKey(newAccount.id), JSON.stringify(initialData));
+    } catch (e) {}
 
-    showToast('Registration Complete', `Welcome, ${newUser.fullName}! Your personal student workspace is created.`, 'success');
-    return { success: true, user: newUser };
+    // Set active session
+    const newSession = {
+      userId: newAccount.id,
+      email: newAccount.email,
+      loginTime: new Date().toISOString()
+    };
+    setSession(newSession);
+    try {
+      localStorage.setItem('interntrack_session', JSON.stringify(newSession));
+    } catch (e) {}
+
+    // Load state
+    loadUserDataIntoState(newAccount, initialData);
+
+    showToast('Registration Successful', `Welcome, ${newAccount.fullName}! Your personal workspace is ready.`, 'success');
+    return { success: true, user: newAccount };
   };
 
-  const loginUser = (studentIdOrEmail, password) => {
-    const query = (studentIdOrEmail || '').trim().toLowerCase();
-    const safeUsers = Array.isArray(users) ? users : [defaultDemoUser];
-    const foundUser = safeUsers.find(
-      (u) =>
-        (u.enrollmentNo?.toLowerCase() === query || u.email?.toLowerCase() === query) &&
-        u.password === password
-    );
+  const loginUser = async (emailInput, passwordInput) => {
+    const email = (emailInput || '').trim().toLowerCase();
+    const password = (passwordInput || '').trim();
 
-    if (foundUser) {
-      switchUserWorkspace(foundUser);
-      setIsLoggedIn(true);
-      showToast('Welcome Back', `Logged into ${foundUser.fullName}'s Personal Dashboard.`, 'success');
-      return { success: true, user: foundUser };
-    } else {
-      showToast('Authentication Error', 'Invalid Student Roll No / Email or Password.', 'error');
-      return { success: false, message: 'Invalid credentials' };
+    if (!email || !password) {
+      showToast('Validation Error', 'Please enter both email and password.', 'error');
+      return { success: false, message: 'Missing credentials' };
     }
+
+    const account = accounts.find((a) => a.email.toLowerCase() === email);
+    if (!account) {
+      showToast('Authentication Error', 'No student account found with this email. Please create an account.', 'error');
+      return { success: false, message: 'Account not found' };
+    }
+
+    const inputHash = await hashPassword(password);
+    if (account.passwordHash !== inputHash) {
+      showToast('Authentication Error', 'Invalid password. Please check your password and try again.', 'error');
+      return { success: false, message: 'Invalid password' };
+    }
+
+    // Load this student's isolated personal data
+    const key = getUserStorageKey(account.id);
+    const saved = loadStored(key, null);
+    const userData = saved || createDefaultUserData(account);
+
+    const newSession = {
+      userId: account.id,
+      email: account.email,
+      loginTime: new Date().toISOString()
+    };
+    setSession(newSession);
+    try {
+      localStorage.setItem('interntrack_session', JSON.stringify(newSession));
+    } catch (e) {}
+
+    loadUserDataIntoState(account, userData);
+
+    showToast('Login Successful', `Welcome back, ${account.fullName}!`, 'success');
+    return { success: true, user: account };
   };
 
   const logoutUser = () => {
-    setIsLoggedIn(false);
+    try {
+      localStorage.removeItem('interntrack_session');
+    } catch (e) {}
+
+    setSession(null);
+    setProfile(null);
+    setApplications([]);
+    setTasks([]);
+    setAttendance([]);
+    setDiary([]);
+    setDocuments([]);
+    setNotifications([]);
+
     showToast('Signed Out', 'You have been signed out of your student session.', 'info');
   };
 
   // --- Profile Operations (Personal) ---
   const updateProfile = (updatedFields) => {
-    const updated = { ...defaultDemoUser, ...profile, ...updatedFields };
+    if (!profile) return;
+    const updated = { ...profile, ...updatedFields };
     setProfile(updated);
-    setCurrentUser(updated);
 
-    // Update in users registry
-    setUsers((prev) => {
-      const safe = Array.isArray(prev) ? prev : [defaultDemoUser];
-      return safe.map((u) => (u.enrollmentNo === updated.enrollmentNo || u.id === updated.id ? updated : u));
-    });
+    // Update corresponding info in accounts registry if core fields changed
+    if (updatedFields.fullName || updatedFields.collegeName || updatedFields.phone || updatedFields.branch || updatedFields.semester) {
+      setAccounts((prev) =>
+        prev.map((acc) =>
+          acc.id === profile.id
+            ? {
+                ...acc,
+                fullName: updated.fullName || acc.fullName,
+                collegeName: updated.collegeName || acc.collegeName,
+                phone: updated.phone || acc.phone,
+                branch: updated.branch || acc.branch,
+                semester: updated.semester || acc.semester
+              }
+            : acc
+        )
+      );
+    }
 
-    showToast('Profile Updated', 'Student profile details saved to your personal record.', 'success');
+    showToast('Profile Updated', 'Student profile details successfully updated.', 'success');
   };
 
-  // --- Internships Directory (Global) ---
+  // --- Internships Directory (Global Sample & Custom) ---
   const addInternship = (intData) => {
     const newInt = {
       ...intData,
@@ -353,6 +423,7 @@ export const AppProvider = ({ children }) => {
       postedDate: new Date().toISOString().split('T')[0],
       logoText: (intData.company || 'CO').substring(0, 2).toUpperCase(),
       logoColor: '#2563eb',
+      isSample: false,
       responsibilities: Array.isArray(intData.responsibilities)
         ? intData.responsibilities
         : (intData.responsibilities || 'Contribute to feature development and project requirements.')
@@ -379,17 +450,18 @@ export const AppProvider = ({ children }) => {
       ...newApp,
       id: `APP-${Date.now().toString().slice(-6)}`,
       appliedDate: new Date().toISOString().split('T')[0],
-      status: 'Pending',
+      status: newApp.status || 'Pending',
       statusHistory: [
         {
-          status: 'Pending',
+          status: newApp.status || 'Pending',
           date: new Date().toISOString().split('T')[0],
-          note: 'Application submitted via student portal.'
+          note: 'Application submitted successfully through student portal.'
         }
       ]
     };
+
     setApplications((prev) => [appWithId, ...(Array.isArray(prev) ? prev : [])]);
-    showToast('Application Submitted', `Applied for ${newApp.title} at ${newApp.company}!`, 'success');
+    showToast('Application Submitted', `Applied for ${appWithId.title} at ${appWithId.company}.`, 'success');
     return appWithId;
   };
 
@@ -514,7 +586,7 @@ export const AppProvider = ({ children }) => {
   };
 
   // Dynamic Attendance Stats (Specific to Logged-in Student)
-  const attendanceStats = (() => {
+  const attendanceStats = useMemo(() => {
     const safeAttendance = Array.isArray(attendance) ? attendance : [];
     const workingDays = safeAttendance.filter((r) => r.status !== 'weekend');
     const presentDays = workingDays.filter((r) => r.status === 'present' || r.status === 'od').length;
@@ -530,7 +602,7 @@ export const AppProvider = ({ children }) => {
       leaveDays,
       percentage: Number(percentage)
     };
-  })();
+  }, [attendance]);
 
   // --- Internship Diary Operations (Personal to Logged-in Student) ---
   const addDiaryEntry = (entryData) => {
@@ -570,7 +642,10 @@ export const AppProvider = ({ children }) => {
 
   // --- Documents Operations (Personal to Logged-in Student) ---
   const addDocument = (docData) => {
-    const safeProfile = profile || defaultDemoUser;
+    const safeFullName = profile?.fullName || 'Student';
+    const safeEnrollment = profile?.enrollmentNo || 'SIP-2026';
+    const safeCollege = profile?.collegeName || 'Engineering College';
+
     const newDoc = {
       ...docData,
       id: `doc-${Date.now()}`,
@@ -583,8 +658,8 @@ export const AppProvider = ({ children }) => {
           `File: ${docData.name}`,
           `Category: ${docData.category}`,
           `Uploaded: ${new Date().toLocaleDateString()}`,
-          `Student: ${safeProfile.fullName} (${safeProfile.enrollmentNo})`,
-          `College: ${safeProfile.collegeName}`
+          `Student: ${safeFullName} (${safeEnrollment})`,
+          `College: ${safeCollege}`
         ],
         watermark: 'OFFICIAL RECORD'
       }
@@ -614,7 +689,7 @@ export const AppProvider = ({ children }) => {
     showToast('Notifications Cleared', 'All notifications marked as read.', 'info');
   };
 
-  // --- Reset & Fresh Start Operations for THIS Student ---
+  // Reset current student's personal workspace to clean empty state
   const clearAllDataToFresh = () => {
     setApplications([]);
     setTasks([]);
@@ -624,24 +699,14 @@ export const AppProvider = ({ children }) => {
     setNotifications([
       {
         id: `notif-${Date.now()}`,
-        title: 'Personal Workspace Cleared',
-        message: 'Your personal dashboard is now completely fresh. Start adding your own tasks and attendance logs.',
+        title: 'Workspace Cleared',
+        message: 'Your personal dashboard has been reset. Start adding your own tasks and attendance logs.',
         time: 'Just now',
         read: false,
         type: 'info'
       }
     ]);
-    showToast('Workspace Cleared', 'All records cleared for this student account. Ready for fresh data!', 'info');
-  };
-
-  const resetDemoData = () => {
-    setApplications(initialApplications);
-    setTasks(initialTasks);
-    setAttendance(initialAttendanceRecords);
-    setDiary(initialDiaryEntries);
-    setDocuments(initialDocuments);
-    setNotifications(initialNotifications);
-    showToast('Sample Records Loaded', 'Standard academic demonstration records loaded into your workspace.', 'info');
+    showToast('Workspace Cleared', 'All records cleared for your student account.', 'info');
   };
 
   // Computed summary metrics for THIS logged-in student's Personal Dashboard
@@ -670,14 +735,14 @@ export const AppProvider = ({ children }) => {
   return (
     <AppContext.Provider
       value={{
-        users: Array.isArray(users) ? users : [defaultDemoUser],
-        currentUser: currentUser || defaultDemoUser,
-        isLoggedIn: Boolean(isLoggedIn),
-        setIsLoggedIn,
+        users: accounts,
+        accounts,
+        currentUser: activeAccount,
+        isLoggedIn,
         registerUser,
         loginUser,
         logoutUser,
-        profile: profile || defaultDemoUser,
+        profile: profile || activeAccount,
         updateProfile,
         internships: Array.isArray(internships) ? internships : initialInternships,
         addInternship,
@@ -713,7 +778,6 @@ export const AppProvider = ({ children }) => {
         isSidebarOpen,
         setIsSidebarOpen,
         clearAllDataToFresh,
-        resetDemoData,
         metrics
       }}
     >

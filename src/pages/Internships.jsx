@@ -268,6 +268,11 @@ export const Internships = () => {
                     >
                       {internship.workMode}
                     </span>
+                    {internship.isSample && (
+                      <span className="badge badge-gray" style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>
+                        Sample Opportunity
+                      </span>
+                    )}
                     {hasApplied && (
                       <span className="badge badge-warning">
                         <Check size={12} /> Applied

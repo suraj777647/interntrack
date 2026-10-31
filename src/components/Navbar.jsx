@@ -40,6 +40,8 @@ export const Navbar = () => {
   const notifRef = useRef(null);
   const profileRef = useRef(null);
 
+  const safeProfile = profile || {};
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   // Close dropdowns on outside click
@@ -196,13 +198,13 @@ export const Navbar = () => {
             }}
           >
             <img
-              src={profile.avatar}
-              alt={profile.fullName}
+              src={safeProfile.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(safeProfile.fullName || 'User')}&backgroundColor=2563eb`}
+              alt={safeProfile.fullName || 'Student'}
               className="user-avatar"
             />
             <div className="user-info-text">
-              <span className="user-name">{profile.fullName}</span>
-              <span className="user-role">{profile.enrollmentNo} &bull; {profile.semester || '7th Sem'}</span>
+              <span className="user-name">{safeProfile.fullName || 'Student'}</span>
+              <span className="user-role">{safeProfile.enrollmentNo || 'SIP-2026'} &bull; {safeProfile.semester || '7th Sem'}</span>
             </div>
             <ChevronDown size={16} className={`dropdown-chevron ${showProfileMenu ? 'open' : ''}`} />
           </button>
@@ -210,10 +212,10 @@ export const Navbar = () => {
           {showProfileMenu && (
             <div className="dropdown-menu profile-dropdown">
               <div className="profile-dropdown-header">
-                <p className="signed-as">Student Account</p>
-                <p className="profile-email">{profile.fullName}</p>
-                <p className="profile-id-sub font-mono">{profile.enrollmentNo}</p>
-                <div className="profile-college-tag">{profile.collegeName}</div>
+                <p className="signed-as">Logged In As</p>
+                <p className="profile-email">{safeProfile.fullName}</p>
+                <p className="profile-id-sub font-mono">{safeProfile.email || safeProfile.enrollmentNo}</p>
+                <div className="profile-college-tag">{safeProfile.collegeName || 'Engineering College'}</div>
               </div>
 
               <div className="dropdown-divider"></div>
@@ -237,25 +239,12 @@ export const Navbar = () => {
                     className="menu-button-action text-danger"
                     onClick={() => {
                       setShowProfileMenu(false);
-                      if (window.confirm("Clear all dummy data? This will empty sample tasks, diary, and attendance so you can add your own real data.")) {
+                      if (window.confirm("Reset your personal tasks, attendance, and application records to start fresh?")) {
                         clearAllDataToFresh();
                       }
                     }}
                   >
-                    <Trash2 size={15} /> Wipe Dummy Data (Start Fresh)
-                  </button>
-                </li>
-                <li>
-                  <button
-                    className="menu-button-action"
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      if (window.confirm("Reload default sample records for presentation?")) {
-                        resetDemoData();
-                      }
-                    }}
-                  >
-                    <RotateCcw size={15} /> Load Sample Records
+                    <Trash2 size={15} /> Reset My Workspace (Start Fresh)
                   </button>
                 </li>
 
@@ -269,7 +258,7 @@ export const Navbar = () => {
                       logoutUser();
                     }}
                   >
-                    <LogOut size={15} /> Sign Out / Switch Account
+                    <LogOut size={15} /> Sign Out
                   </button>
                 </li>
               </ul>

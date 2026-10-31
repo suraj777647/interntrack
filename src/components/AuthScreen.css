@@ -69,6 +69,9 @@
   color: #64748b;
   border-radius: var(--radius-sm);
   transition: all 0.2s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
 }
 
 .auth-tab-btn.active {
@@ -97,9 +100,39 @@
   background-color: #fef2f2;
   border: 1px solid #fecaca;
   color: #b91c1c;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   padding: 10px 14px;
   border-radius: 8px;
+  font-weight: 500;
+}
+
+/* Password Input with eye toggle */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper .form-control {
+  padding-right: 42px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: color 0.15s ease;
+}
+
+.password-toggle-btn:hover {
+  color: #1e293b;
 }
 
 .auth-submit-btn {
@@ -107,81 +140,65 @@
   padding: 12px;
   font-size: 0.95rem;
   margin-top: 6px;
-}
-
-/* Checkbox */
-.clean-data-checkbox-row {
-  background-color: #eff6ff;
-  border: 1px solid #bfdbfe;
-  padding: 12px 14px;
-  border-radius: 8px;
-}
-
-.checkbox-container {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  cursor: pointer;
-}
-
-.checkbox-container input {
-  margin-top: 3px;
-  cursor: pointer;
-}
-
-.checkbox-text {
-  font-size: 0.8rem;
-  color: #1e3a8a;
-  line-height: 1.4;
-}
-
-/* Quick access demo accounts */
-.quick-access-box {
-  margin-top: 14px;
-  padding-top: 16px;
-  border-top: 1px solid #f1f5f9;
-}
-
-.quick-acc-title {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: #64748b;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-}
-
-.demo-accounts-list {
-  display: flex;
-  flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
 }
 
-.demo-acc-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  padding: 6px 12px;
-  border-radius: var(--radius-full);
-  font-size: 0.78rem;
-  color: #334155;
-  transition: all 0.15s;
+.auth-switch-prompt {
+  text-align: center;
+  font-size: 0.84rem;
+  color: #64748b;
+  margin-top: 4px;
 }
 
-.demo-acc-pill:hover {
-  background-color: #eff6ff;
-  border-color: #bfdbfe;
+.link-btn {
+  background: none;
+  border: none;
   color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 4px;
+  text-decoration: underline;
+  font-size: 0.84rem;
+}
+
+.link-btn:hover {
+  color: #1d4ed8;
+}
+
+/* Academic Security Notice */
+.academic-security-notice {
+  margin-top: 20px;
+  padding: 12px 14px;
+  background-color: #f0f7ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.notice-icon-box {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notice-text {
+  font-size: 0.77rem;
+  color: #0369a1;
+  line-height: 1.45;
+}
+
+.notice-text strong {
+  color: #0284c7;
 }
 
 .auth-footer-note {
   text-align: center;
-  margin-top: 24px;
-  padding-top: 16px;
+  margin-top: 18px;
+  padding-top: 14px;
   border-top: 1px solid #f1f5f9;
   font-size: 0.72rem;
   color: #94a3b8;
@@ -192,4 +209,3 @@
     padding: 24px 20px;
   }
 }
-

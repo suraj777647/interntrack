@@ -25,7 +25,7 @@ import {
 import './Profile.css';
 
 export const Profile = () => {
-  const { profile, updateProfile, resetDemoData, clearAllDataToFresh, logoutUser, metrics } = useInternTrack();
+  const { profile, updateProfile, clearAllDataToFresh, logoutUser, metrics } = useInternTrack();
   const safeProfile = profile || {};
 
   const [isEditing, setIsEditing] = useState(false);
@@ -367,33 +367,22 @@ export const Profile = () => {
           <div className="it-card reset-evaluator-card">
             <div className="eval-reset-header">
               <RotateCcw size={16} className="eval-icon" />
-              <h4>Workspace & Sample Data Management</h4>
+              <h4>Personal Workspace Management</h4>
             </div>
             <p>
-              You can wipe out all sample data to record 100% of your own actual internship tasks, attendance, and documents. You can also restore sample records at any time.
+              Reset your personal applications, tasks, attendance, and diary entries to a clean empty state whenever needed.
             </p>
             <div className="reset-buttons-grid">
               <button
                 type="button"
                 className="btn btn-outline btn-sm reset-demo-btn text-danger"
                 onClick={() => {
-                  if (window.confirm('Wipe out all sample tasks, attendance, and applications to start completely fresh with your own data?')) {
+                  if (window.confirm('Reset your tasks, attendance, and applications to clean empty state?')) {
                     clearAllDataToFresh();
                   }
                 }}
               >
-                <Trash2 size={13} /> Clear Dummy Data (Fresh Start)
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline btn-sm reset-demo-btn"
-                onClick={() => {
-                  if (window.confirm('Restore standard sample demonstration records?')) {
-                    resetDemoData();
-                  }
-                }}
-              >
-                <RotateCcw size={13} /> Restore Sample Records
+                <Trash2 size={13} /> Reset My Workspace (Start Fresh)
               </button>
             </div>
           </div>
@@ -502,6 +491,17 @@ export const Profile = () => {
                       className="form-control"
                       value={formData.semester}
                       onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Graduation Year</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={formData.graduationYear || ''}
+                      onChange={(e) => setFormData({ ...formData, graduationYear: e.target.value })}
+                      placeholder="e.g. 2026"
                     />
                   </div>
                 </div>
