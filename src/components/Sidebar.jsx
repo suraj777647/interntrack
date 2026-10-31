@@ -19,7 +19,7 @@ import {
 import './Sidebar.css';
 
 export const Sidebar = () => {
-  const { isSidebarOpen, setIsSidebarOpen, metrics, setIsLoggedIn } = useInternTrack();
+  const { isSidebarOpen, setIsSidebarOpen, metrics, logoutUser, profile } = useInternTrack();
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -45,8 +45,8 @@ export const Sidebar = () => {
   ];
 
   const handleLogout = () => {
-    if (window.confirm("Demonstration Notice: Log out of student session? (You can sign back in immediately)")) {
-      setIsLoggedIn(false);
+    if (window.confirm("Do you want to log out of your student session?")) {
+      logoutUser();
     }
   };
 
@@ -126,11 +126,11 @@ export const Sidebar = () => {
         <div className="sidebar-footer">
           <button className="logout-btn" onClick={handleLogout}>
             <LogOut size={18} className="logout-icon" />
-            <span>Sign Out (Demo)</span>
+            <span>Sign Out / Switch ID</span>
           </button>
           <div className="footer-meta">
-            <p>Apex Institute of Tech &copy; 2026</p>
-            <p className="academic-viva">B.Tech CSE SIP Project</p>
+            <p>{profile.collegeName || 'Engineering College'} &copy; 2026</p>
+            <p className="academic-viva">B.Tech 7th Sem SIP Portal</p>
           </div>
         </div>
       </aside>
@@ -139,3 +139,4 @@ export const Sidebar = () => {
 };
 
 export default Sidebar;
+

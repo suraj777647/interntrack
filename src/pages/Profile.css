@@ -313,11 +313,29 @@
   margin-bottom: 12px;
 }
 
+.reset-buttons-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .reset-demo-btn {
   background-color: #ffffff;
   border-color: #fde68a;
   color: #92400e;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.reset-demo-btn.text-danger {
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+.reset-demo-btn.text-danger:hover {
+  background-color: #fef2f2;
 }
 
 .reset-demo-btn:hover {
@@ -333,3 +351,4 @@
     grid-template-columns: 1fr;
   }
 }
+

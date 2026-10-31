@@ -421,7 +421,7 @@ export const ApplyInternship = () => {
                 </div>
               </div>
               <span className="form-hint-text">
-                Demo simulation: Automatically loads your verified B.Tech SIP resume.
+                Attached from your verified student document vault.
               </span>
             </div>
 
@@ -492,9 +492,9 @@ export const ApplyInternship = () => {
           </div>
 
           <div className="it-card demo-notice-card">
-            <h4>💡 Academic Simulation Notice</h4>
+            <h4>📋 Department Guidelines</h4>
             <p>
-              This is a frontend demonstration using browser <strong>LocalStorage</strong>. Submitted applications are tracked in the <em>My Applications</em> module with interactive status progression controls.
+              Applications submitted through the portal are logged for your <strong>SIP Faculty Mentor</strong> and Training & Placement Cell records. Status updates can be tracked in the <em>My Applications</em> module.
             </p>
           </div>
         </div>
@@ -555,3 +555,4 @@ export const ApplyInternship = () => {
 };
 
 export default ApplyInternship;
+

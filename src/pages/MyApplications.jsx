@@ -289,14 +289,14 @@ export const MyApplications = () => {
                 <span className="applied-on-text">Applied on: {activeApp.appliedDate}</span>
               </div>
 
-              {/* Status Progression Simulation (Great for Viva Demonstrations) */}
+              {/* Status Update Control */}
               <div className="status-simulation-box">
                 <div className="sim-header">
                   <RotateCw size={15} className="sim-icon" />
-                  <h4>Simulate Status Progression (Evaluator Tool)</h4>
+                  <h4>Update Application Hiring Stage</h4>
                 </div>
                 <p className="sim-desc">
-                  Academic feature: Test how changing hiring decisions updates dashboard statistics and application timelines.
+                  Update your recruitment progress as communicated by the company or Placement Cell (TPO).
                 </p>
                 <form className="sim-form" onSubmit={handleStatusUpdateSubmit}>
                   <div className="sim-controls-row">
@@ -405,3 +405,4 @@ export const MyApplications = () => {
 };
 
 export default MyApplications;
+

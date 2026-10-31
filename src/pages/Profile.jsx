@@ -24,7 +24,7 @@ import {
 import './Profile.css';
 
 export const Profile = () => {
-  const { profile, updateProfile, resetDemoData, metrics } = useInternTrack();
+  const { profile, updateProfile, resetDemoData, clearAllDataToFresh, logoutUser, metrics } = useInternTrack();
 
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ ...profile });
@@ -361,25 +361,39 @@ export const Profile = () => {
             </div>
           </div>
 
-          {/* Academic Evaluator Reset Card */}
+          {/* Workspace Data Management */}
           <div className="it-card reset-evaluator-card">
             <div className="eval-reset-header">
               <RotateCcw size={16} className="eval-icon" />
-              <h4>Evaluator Demonstration Tool</h4>
+              <h4>Workspace & Sample Data Management</h4>
             </div>
             <p>
-              Reset all application records, task statuses, attendance, and diary entries back to default sample state for clean demonstration.
+              You can wipe out all sample data to record 100% of your own actual internship tasks, attendance, and documents. You can also restore sample records at any time.
             </p>
-            <button
-              className="btn btn-outline btn-sm reset-demo-btn"
-              onClick={() => {
-                if (window.confirm('Reset all demo data to default initial state?')) {
-                  resetDemoData();
-                }
-              }}
-            >
-              Reset Demo Data to Initial State
-            </button>
+            <div className="reset-buttons-grid">
+              <button
+                type="button"
+                className="btn btn-outline btn-sm reset-demo-btn text-danger"
+                onClick={() => {
+                  if (window.confirm('Wipe out all sample tasks, attendance, and applications to start completely fresh with your own data?')) {
+                    clearAllDataToFresh();
+                  }
+                }}
+              >
+                <Trash2 size={13} /> Clear Dummy Data (Fresh Start)
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline btn-sm reset-demo-btn"
+                onClick={() => {
+                  if (window.confirm('Restore standard sample demonstration records?')) {
+                    resetDemoData();
+                  }
+                }}
+              >
+                <RotateCcw size={13} /> Restore Sample Records
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -535,6 +549,17 @@ export const Profile = () => {
                 </div>
 
                 <div className="form-group">
+                  <label>Profile Avatar / Photo URL</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="https://images.unsplash.com/... or DiceBear URL"
+                    value={formData.avatar}
+                    onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
                   <label>Professional Bio / Statement</label>
                   <textarea
                     rows={3}
@@ -566,3 +591,4 @@ export const Profile = () => {
 };
 
 export default Profile;
+

@@ -12,8 +12,31 @@ import {
 
 const AppContext = createContext();
 
+// Default registered user for initial start
+const defaultUser = {
+  id: 'usr-default',
+  fullName: initialStudentProfile.fullName,
+  email: initialStudentProfile.email,
+  phone: initialStudentProfile.phone,
+  enrollmentNo: initialStudentProfile.enrollmentNo,
+  collegeName: initialStudentProfile.collegeName,
+  universityName: initialStudentProfile.universityName,
+  degree: initialStudentProfile.degree,
+  branch: initialStudentProfile.branch,
+  semester: initialStudentProfile.semester,
+  password: 'password123',
+  avatar: initialStudentProfile.avatar,
+  currentInternship: initialStudentProfile.currentInternship,
+  mentorName: initialStudentProfile.mentorName,
+  industryMentor: initialStudentProfile.industryMentor,
+  skills: initialStudentProfile.skills,
+  careerInterests: initialStudentProfile.careerInterests,
+  bio: initialStudentProfile.bio,
+  cgpa: initialStudentProfile.cgpa
+};
+
 export const AppProvider = ({ children }) => {
-  // Safe LocalStorage loader
+  // Safe LocalStorage loader helper
   const loadStored = (key, fallback) => {
     try {
       const stored = localStorage.getItem(key);
@@ -24,8 +47,18 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // State definitions
-  const [profile, setProfile] = useState(() => loadStored('interntrack_profile', initialStudentProfile));
+  // --- Users & Authentication State ---
+  const [users, setUsers] = useState(() => loadStored('interntrack_users', [defaultUser]));
+  const [currentUser, setCurrentUser] = useState(() => {
+    const savedUser = loadStored('interntrack_current_user', defaultUser);
+    return savedUser;
+  });
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return loadStored('interntrack_is_logged_in', true);
+  });
+
+  // --- Core Application Data States ---
+  const [profile, setProfile] = useState(() => loadStored('interntrack_profile', currentUser));
   const [internships, setInternships] = useState(() => loadStored('interntrack_internships', initialInternships));
   const [applications, setApplications] = useState(() => loadStored('interntrack_applications', initialApplications));
   const [tasks, setTasks] = useState(() => loadStored('interntrack_tasks', initialTasks));
@@ -33,14 +66,22 @@ export const AppProvider = ({ children }) => {
   const [diary, setDiary] = useState(() => loadStored('interntrack_diary', initialDiaryEntries));
   const [documents, setDocuments] = useState(() => loadStored('interntrack_documents', initialDocuments));
   const [notifications, setNotifications] = useState(() => loadStored('interntrack_notifications', initialNotifications));
-  
-  // UI & Global Feedback States
+
+  // --- Global UI States ---
   const [toasts, setToasts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
 
-  // Sync to LocalStorage whenever state changes
+  // Sync to LocalStorage whenever state updates
+  useEffect(() => {
+    localStorage.setItem('interntrack_users', JSON.stringify(users));
+  }, [users]);
+
+  useEffect(() => {
+    localStorage.setItem('interntrack_current_user', JSON.stringify(currentUser));
+    localStorage.setItem('interntrack_is_logged_in', JSON.stringify(isLoggedIn));
+  }, [currentUser, isLoggedIn]);
+
   useEffect(() => {
     localStorage.setItem('interntrack_profile', JSON.stringify(profile));
   }, [profile]);
@@ -73,7 +114,7 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('interntrack_notifications', JSON.stringify(notifications));
   }, [notifications]);
 
-  // Toast Notification Dispatcher
+  // --- Toast Dispatcher ---
   const showToast = (title, message, type = 'success') => {
     const id = Date.now() + Math.random().toString(36).substring(2, 6);
     const newToast = { id, title, message, type };
@@ -87,20 +128,125 @@ export const AppProvider = ({ children }) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Profile Operations
-  const updateProfile = (updatedFields) => {
-    setProfile((prev) => ({
-      ...prev,
-      ...updatedFields
-    }));
-    showToast('Profile Updated', 'Student profile details saved successfully.', 'success');
+  // --- Authentication Operations ---
+  const registerUser = (userData) => {
+    // Generate clean student record
+    const existing = users.find(
+      (u) =>
+        u.enrollmentNo.toLowerCase() === userData.enrollmentNo.toLowerCase() ||
+        u.email.toLowerCase() === userData.email.toLowerCase()
+    );
+
+    if (existing) {
+      showToast('Account Exists', 'A student with this Roll No. or Email is already registered.', 'error');
+      return { success: false, message: 'Student ID or email already registered' };
+    }
+
+    const newUser = {
+      id: `usr-${Date.now()}`,
+      fullName: userData.fullName.trim(),
+      email: userData.email.trim(),
+      phone: userData.phone || '+91 98765 00000',
+      enrollmentNo: userData.enrollmentNo.trim().toUpperCase(),
+      collegeName: userData.collegeName.trim(),
+      universityName: userData.universityName || 'State Technological University',
+      degree: userData.degree || 'Bachelor of Technology (B.Tech)',
+      branch: userData.branch || 'Computer Science & Engineering',
+      semester: userData.semester || '7th Semester',
+      password: userData.password || 'password123',
+      avatar:
+        userData.avatar ||
+        `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userData.fullName)}&backgroundColor=2563eb`,
+      currentInternship: userData.currentInternship || 'Software Engineering Intern',
+      mentorName: userData.mentorName || 'Dr. HOD / Faculty Coordinator',
+      industryMentor: userData.industryMentor || 'Lead Engineer',
+      skills: ['React.js', 'JavaScript', 'HTML5/CSS3', 'Git'],
+      careerInterests: ['Web Development', 'Software Engineering'],
+      bio: `7th-semester engineering student at ${userData.collegeName}. Maintaining internship records for university SIP evaluation.`,
+      cgpa: userData.cgpa || '8.5 / 10.0'
+    };
+
+    setUsers((prev) => [...prev, newUser]);
+    setCurrentUser(newUser);
+    setProfile(newUser);
+    setIsLoggedIn(true);
+
+    showToast('Registration Successful', `Welcome ${newUser.fullName}! Your student ID has been created.`, 'success');
+    return { success: true, user: newUser };
   };
 
-  // Applications Operations
+  const loginUser = (studentIdOrEmail, password) => {
+    const query = studentIdOrEmail.trim().toLowerCase();
+    const foundUser = users.find(
+      (u) =>
+        (u.enrollmentNo.toLowerCase() === query || u.email.toLowerCase() === query) &&
+        u.password === password
+    );
+
+    if (foundUser) {
+      setCurrentUser(foundUser);
+      setProfile(foundUser);
+      setIsLoggedIn(true);
+      showToast('Welcome Back', `Logged in as ${foundUser.fullName}`, 'success');
+      return { success: true, user: foundUser };
+    } else {
+      showToast('Authentication Failed', 'Invalid Student Roll No / Email or Password.', 'error');
+      return { success: false, message: 'Invalid credentials' };
+    }
+  };
+
+  const logoutUser = () => {
+    setIsLoggedIn(false);
+    showToast('Signed Out', 'You have been signed out of your student session.', 'info');
+  };
+
+  // --- Profile Operations ---
+  const updateProfile = (updatedFields) => {
+    const updated = { ...profile, ...updatedFields };
+    setProfile(updated);
+    setCurrentUser(updated);
+
+    // Update in users registry
+    setUsers((prev) =>
+      prev.map((u) => (u.enrollmentNo === updated.enrollmentNo || u.id === updated.id ? updated : u))
+    );
+
+    showToast('Profile Updated', 'Student profile details updated successfully.', 'success');
+  };
+
+  // --- Internships Operations (Add Custom Opportunity) ---
+  const addInternship = (intData) => {
+    const newInt = {
+      ...intData,
+      id: `int-${Date.now()}`,
+      postedDate: new Date().toISOString().split('T')[0],
+      logoText: (intData.company || 'CO').substring(0, 2).toUpperCase(),
+      logoColor: '#2563eb',
+      responsibilities: Array.isArray(intData.responsibilities)
+        ? intData.responsibilities
+        : (intData.responsibilities || 'Contribute to feature development and bug fixes.')
+            .split('\n')
+            .filter(Boolean),
+      requirements: Array.isArray(intData.requirements)
+        ? intData.requirements
+        : (intData.requirements || 'Knowledge of React and JavaScript fundamentals.')
+            .split('\n')
+            .filter(Boolean),
+      perks: Array.isArray(intData.perks)
+        ? intData.perks
+        : ['Internship Completion Certificate', 'Flexible Hours', 'Mentorship']
+    };
+
+    setInternships((prev) => [newInt, ...prev]);
+    showToast('Opportunity Added', `"${newInt.title}" at ${newInt.company} listed successfully.`, 'success');
+    return newInt;
+  };
+
+  // --- Applications Operations ---
   const addApplication = (newApp) => {
     const appWithId = {
       ...newApp,
-      id: `app-${Date.now()}`,
+      id: `APP-${Date.now().toString().slice(-6)}`,
       appliedDate: new Date().toISOString().split('T')[0],
       status: 'Pending',
       statusHistory: [
@@ -142,10 +288,10 @@ export const AppProvider = ({ children }) => {
 
   const deleteApplication = (appId) => {
     setApplications((prev) => prev.filter((app) => app.id !== appId));
-    showToast('Application Withdrawn', 'Internship application was removed.', 'info');
+    showToast('Application Withdrawn', 'Internship application removed.', 'info');
   };
 
-  // Task Operations
+  // --- Task Operations ---
   const addTask = (taskData) => {
     const newTask = {
       ...taskData,
@@ -154,19 +300,19 @@ export const AppProvider = ({ children }) => {
       status: taskData.status || 'Pending'
     };
     setTasks((prev) => [newTask, ...prev]);
-    showToast('Task Created', `"${newTask.title}" added to your task board.`, 'success');
+    showToast('Task Created', `"${newTask.title}" added to your task list.`, 'success');
   };
 
   const updateTask = (taskId, updatedFields) => {
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, ...updatedFields } : t))
     );
-    showToast('Task Updated', 'Task changes have been saved.', 'success');
+    showToast('Task Updated', 'Task changes saved.', 'success');
   };
 
   const deleteTask = (taskId) => {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
-    showToast('Task Removed', 'The task has been deleted.', 'info');
+    showToast('Task Removed', 'Task deleted.', 'info');
   };
 
   const toggleTaskStatus = (taskId) => {
@@ -181,58 +327,65 @@ export const AppProvider = ({ children }) => {
     );
   };
 
-  // Attendance Operations & Metrics
-  const markTodayAttendance = (status = 'present', note = 'Manual student check-in') => {
-    const todayStr = '2026-10-31'; // Or dynamic current date
-    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
+  // --- Attendance Operations (Custom Date Logging) ---
+  const logAttendance = (entryData) => {
+    const targetDate = entryData.date;
+    const isPresent = entryData.status === 'present' || entryData.status === 'od';
+
     setAttendance((prev) => {
-      const existingIndex = prev.findIndex((r) => r.date === todayStr);
-      if (existingIndex >= 0) {
+      const existingIdx = prev.findIndex((r) => r.date === targetDate);
+      const updatedRecord = {
+        id: `att-${targetDate}`,
+        date: targetDate,
+        day: entryData.day || new Date(targetDate).toLocaleDateString('en-US', { weekday: 'short' }),
+        dayNumber: parseInt(targetDate.split('-')[2], 10) || 1,
+        status: entryData.status,
+        checkIn: isPresent ? entryData.checkIn || '09:15 AM' : '-',
+        checkOut: isPresent ? entryData.checkOut || '05:45 PM' : '-',
+        workingHours: isPresent ? entryData.workingHours || '8.0 hrs' : '0 hrs',
+        note: entryData.note || 'Regular internship duty logged.'
+      };
+
+      if (existingIdx >= 0) {
         const copy = [...prev];
-        copy[existingIndex] = {
-          ...copy[existingIndex],
-          status,
-          checkIn: status === 'present' ? copy[existingIndex].checkIn || nowTime : '-',
-          checkOut: status === 'present' ? '05:30 PM' : '-',
-          workingHours: status === 'present' ? '8.0 hrs' : '0 hrs',
-          note
-        };
+        copy[existingIdx] = updatedRecord;
         return copy;
       } else {
-        const newRecord = {
-          id: `att-${todayStr}`,
-          date: todayStr,
-          day: 'Sat',
-          dayNumber: 31,
-          status,
-          checkIn: status === 'present' ? nowTime : '-',
-          checkOut: status === 'present' ? '05:30 PM' : '-',
-          workingHours: status === 'present' ? '8.0 hrs' : '0 hrs',
-          note
-        };
-        return [...prev, newRecord];
+        return [updatedRecord, ...prev];
       }
     });
-    showToast('Attendance Recorded', `Marked attendance as ${status.toUpperCase()} for today.`, 'success');
+
+    showToast('Attendance Recorded', `Attendance for ${targetDate} logged as ${entryData.status.toUpperCase()}.`, 'success');
+  };
+
+  const markTodayAttendance = (status = 'present', note = 'Daily internship check-in') => {
+    const today = new Date().toISOString().split('T')[0];
+    logAttendance({
+      date: today,
+      status,
+      checkIn: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      checkOut: '05:30 PM',
+      workingHours: '8.0 hrs',
+      note
+    });
   };
 
   const updateAttendanceRecord = (recordId, updatedFields) => {
     setAttendance((prev) =>
       prev.map((rec) => (rec.id === recordId ? { ...rec, ...updatedFields } : rec))
     );
-    showToast('Record Updated', 'Attendance entry modified.', 'info');
+    showToast('Record Updated', 'Attendance record modified.', 'info');
   };
 
-  // Dynamic Attendance Calculation
+  // Dynamic Attendance Stats
   const attendanceStats = (() => {
     const workingDays = attendance.filter((r) => r.status !== 'weekend');
-    const presentDays = workingDays.filter((r) => r.status === 'present').length;
+    const presentDays = workingDays.filter((r) => r.status === 'present' || r.status === 'od').length;
     const absentDays = workingDays.filter((r) => r.status === 'absent').length;
     const leaveDays = workingDays.filter((r) => r.status === 'leave').length;
     const totalWorkingDays = workingDays.length;
-    const percentage = totalWorkingDays > 0 ? ((presentDays / totalWorkingDays) * 100).toFixed(1) : 0;
-    
+    const percentage = totalWorkingDays > 0 ? ((presentDays / totalWorkingDays) * 100).toFixed(1) : '0.0';
+
     return {
       totalWorkingDays,
       presentDays,
@@ -242,7 +395,7 @@ export const AppProvider = ({ children }) => {
     };
   })();
 
-  // Internship Diary Operations
+  // --- Internship Diary Operations ---
   const addDiaryEntry = (entryData) => {
     const newEntry = {
       ...entryData,
@@ -252,7 +405,7 @@ export const AppProvider = ({ children }) => {
         : (entryData.tasksCompleted || '').split('\n').filter(Boolean)
     };
     setDiary((prev) => [newEntry, ...prev]);
-    showToast('Diary Saved', 'Daily internship diary record added.', 'success');
+    showToast('Diary Saved', 'Daily work log added to your internship diary.', 'success');
   };
 
   const updateDiaryEntry = (entryId, updatedFields) => {
@@ -269,43 +422,44 @@ export const AppProvider = ({ children }) => {
           : e
       )
     );
-    showToast('Diary Updated', 'Diary entry updated successfully.', 'success');
+    showToast('Diary Updated', 'Diary record updated.', 'success');
   };
 
   const deleteDiaryEntry = (entryId) => {
     setDiary((prev) => prev.filter((e) => e.id !== entryId));
-    showToast('Diary Entry Removed', 'Diary record was deleted.', 'info');
+    showToast('Diary Removed', 'Diary record deleted.', 'info');
   };
 
-  // Documents Operations
+  // --- Documents Operations ---
   const addDocument = (docData) => {
     const newDoc = {
       ...docData,
       id: `doc-${Date.now()}`,
       uploadedDate: new Date().toISOString().split('T')[0],
-      status: 'Uploaded',
+      status: docData.status || 'Verified',
       previewContent: docData.previewContent || {
         title: docData.name.toUpperCase(),
         subtitle: `Internship Document - Category: ${docData.category}`,
         sections: [
           `File: ${docData.name}`,
           `Category: ${docData.category}`,
-          `Upload Timestamp: ${new Date().toLocaleString()}`,
-          `Student: ${profile.fullName} (${profile.enrollmentNo})`
+          `Uploaded: ${new Date().toLocaleDateString()}`,
+          `Student: ${profile.fullName} (${profile.enrollmentNo})`,
+          `College: ${profile.collegeName}`
         ],
-        watermark: "STUDENT SUBMISSION"
+        watermark: 'OFFICIAL RECORD'
       }
     };
     setDocuments((prev) => [newDoc, ...prev]);
-    showToast('Document Uploaded', `${docData.name} saved to your documents vault.`, 'success');
+    showToast('Document Uploaded', `"${docData.name}" saved to repository.`, 'success');
   };
 
   const deleteDocument = (docId) => {
     setDocuments((prev) => prev.filter((d) => d.id !== docId));
-    showToast('Document Deleted', 'Document removed from storage.', 'info');
+    showToast('Document Removed', 'Document deleted from repository.', 'info');
   };
 
-  // Notification Operations
+  // --- Notification Operations ---
   const markNotificationRead = (notifId) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === notifId ? { ...n, read: true } : n))
@@ -317,9 +471,31 @@ export const AppProvider = ({ children }) => {
     showToast('Notifications Cleared', 'All notifications marked as read.', 'info');
   };
 
-  // Reset to initial demo data (perfect for testing & viva presentation demo)
+  // --- Reset & Fresh Start Functions ---
+  // Option 1: Clear all dummy data so the user can start with a 100% clean, fresh slate with their own data
+  const clearAllDataToFresh = () => {
+    setApplications([]);
+    setTasks([]);
+    setAttendance([]);
+    setDiary([]);
+    setDocuments([]);
+    setNotifications([
+      {
+        id: 'notif-fresh-1',
+        title: 'Fresh Student Workspace Created',
+        message: 'All dummy records cleared. Start by adding your tasks, attendance, and diary entries.',
+        time: 'Just now',
+        read: false,
+        type: 'info'
+      }
+    ]);
+    showToast('Workspace Cleared', 'All sample data cleared. Ready for your own entries!', 'info');
+  };
+
+  // Option 2: Restore realistic sample data for viva demonstration
   const resetDemoData = () => {
-    setProfile(initialStudentProfile);
+    setProfile(defaultUser);
+    setCurrentUser(defaultUser);
     setInternships(initialInternships);
     setApplications(initialApplications);
     setTasks(initialTasks);
@@ -327,11 +503,10 @@ export const AppProvider = ({ children }) => {
     setDiary(initialDiaryEntries);
     setDocuments(initialDocuments);
     setNotifications(initialNotifications);
-    localStorage.clear();
-    showToast('System Reset', 'All demo data has been restored to factory default.', 'info');
+    showToast('Sample Data Loaded', 'Standard academic demonstration records restored.', 'info');
   };
 
-  // Computed summary metrics for Dashboard
+  // Computed summary metrics
   const metrics = {
     totalApplications: applications.length,
     activeInternships: applications.filter((a) => a.status === 'Selected').length,
@@ -340,7 +515,10 @@ export const AppProvider = ({ children }) => {
     completedTasks: tasks.filter((t) => t.status === 'Completed').length,
     pendingTasks: tasks.filter((t) => t.status !== 'Completed').length,
     totalTasks: tasks.length,
-    taskCompletionRate: tasks.length > 0 ? Math.round((tasks.filter((t) => t.status === 'Completed').length / tasks.length) * 100) : 0,
+    taskCompletionRate:
+      tasks.length > 0
+        ? Math.round((tasks.filter((t) => t.status === 'Completed').length / tasks.length) * 100)
+        : 0,
     attendanceRate: attendanceStats.percentage,
     totalDiaryEntries: diary.length,
     totalDocuments: documents.length
@@ -349,9 +527,17 @@ export const AppProvider = ({ children }) => {
   return (
     <AppContext.Provider
       value={{
+        users,
+        currentUser,
+        isLoggedIn,
+        setIsLoggedIn,
+        registerUser,
+        loginUser,
+        logoutUser,
         profile,
         updateProfile,
         internships,
+        addInternship,
         applications,
         addApplication,
         updateApplicationStatus,
@@ -363,6 +549,7 @@ export const AppProvider = ({ children }) => {
         toggleTaskStatus,
         attendance,
         attendanceStats,
+        logAttendance,
         markTodayAttendance,
         updateAttendanceRecord,
         diary,
@@ -382,8 +569,7 @@ export const AppProvider = ({ children }) => {
         setSearchQuery,
         isSidebarOpen,
         setIsSidebarOpen,
-        isLoggedIn,
-        setIsLoggedIn,
+        clearAllDataToFresh,
         resetDemoData,
         metrics
       }}

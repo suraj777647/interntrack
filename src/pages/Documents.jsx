@@ -355,7 +355,7 @@ export const Documents = () => {
                 {isUploading && (
                   <div className="upload-progress-wrapper">
                     <div className="progress-label-row">
-                      <span>Simulating upload & file encryption...</span>
+                      <span>Uploading and indexing document...</span>
                       <strong>{uploadProgress}%</strong>
                     </div>
                     <div className="summary-progress-bar">
@@ -485,3 +485,4 @@ export const Documents = () => {
 };
 
 export default Documents;
+

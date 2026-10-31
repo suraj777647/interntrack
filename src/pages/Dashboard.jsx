@@ -183,7 +183,9 @@ export const Dashboard = () => {
               <h2 className="stat-value">{metrics.activeInternships}</h2>
               <span className="stat-badge-success">Selected</span>
             </div>
-            <p className="stat-meta">CloudScale Tech (₹25k/mo)</p>
+            <p className="stat-meta">
+              {metrics.activeInternships > 0 ? profile.currentInternship : 'Awaiting offer release'}
+            </p>
           </div>
         </div>
 
@@ -492,3 +494,4 @@ export const Dashboard = () => {
 const CompassIcon = ({ size }) => <Building2 size={size} />;
 
 export default Dashboard;
+

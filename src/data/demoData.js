@@ -842,3 +842,4 @@ export const initialNotifications = [
     link: "/attendance"
   }
 ];
+

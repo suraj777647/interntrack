@@ -6,6 +6,7 @@ import { AppProvider, useInternTrack } from './context/AppContext';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import ToastContainer from './components/ToastContainer';
+import AuthScreen from './components/AuthScreen';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -18,43 +19,19 @@ import InternshipDiary from './pages/InternshipDiary';
 import Documents from './pages/Documents';
 import Profile from './pages/Profile';
 
-import { GraduationCap, LogIn, Sparkles } from 'lucide-react';
 import './App.css';
 
 // Main Application Layout
 const MainLayout = () => {
-  const { isLoggedIn, setIsLoggedIn, profile } = useInternTrack();
+  const { isLoggedIn } = useInternTrack();
 
-  // Simulated Logout State UI
+  // If not logged in, render the Student Login & Registration Screen
   if (!isLoggedIn) {
     return (
-      <div className="logged-out-container">
-        <div className="logged-out-card">
-          <div className="logged-out-icon">
-            <GraduationCap size={40} color="#2563eb" />
-          </div>
-          <h2>InternTrack</h2>
-          <span className="badge badge-info">B.Tech 7th Semester SIP Project</span>
-          <p className="logged-out-desc">
-            You have signed out of the student session. This is a frontend demonstration of the authentication lifecycle.
-          </p>
-
-          <div className="demo-user-preview">
-            <img src={profile.avatar} alt={profile.fullName} className="demo-avatar" />
-            <div>
-              <strong>{profile.fullName}</strong>
-              <p>{profile.collegeName}</p>
-            </div>
-          </div>
-
-          <button
-            className="btn btn-primary sign-in-btn"
-            onClick={() => setIsLoggedIn(true)}
-          >
-            <LogIn size={16} /> Sign Back In (1-Click Student Demo)
-          </button>
-        </div>
-      </div>
+      <>
+        <AuthScreen />
+        <ToastContainer />
+      </>
     );
   }
 
@@ -63,12 +40,12 @@ const MainLayout = () => {
       {/* Left Navigation Sidebar */}
       <Sidebar />
 
-      {/* Main Right Side */}
+      {/* Main Right Body */}
       <div className="app-body">
         {/* Top Sticky Navbar */}
         <Navbar />
 
-        {/* Dynamic Route Content */}
+        {/* Dynamic Page Views */}
         <main className="it-main-content">
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -85,7 +62,7 @@ const MainLayout = () => {
         </main>
       </div>
 
-      {/* Toast Notification Container */}
+      {/* Floating Toast Notification Container */}
       <ToastContainer />
     </div>
   );

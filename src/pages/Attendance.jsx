@@ -12,7 +12,9 @@ import {
   Edit2,
   X,
   TrendingUp,
-  Award
+  Award,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import './Attendance.css';
 
@@ -20,19 +22,32 @@ export const Attendance = () => {
   const {
     attendance,
     attendanceStats,
+    logAttendance,
     markTodayAttendance,
     updateAttendanceRecord
   } = useInternTrack();
 
   const [activeDateModal, setActiveDateModal] = useState(null);
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+
+  // Custom Log Modal State
+  const [logFormData, setLogFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    status: 'present',
+    checkIn: '09:15 AM',
+    checkOut: '05:45 PM',
+    workingHours: '8.5 hrs',
+    note: ''
+  });
+
+  // Edit status modal state
   const [editStatus, setEditStatus] = useState('present');
   const [editNote, setEditNote] = useState('');
 
   // Day names header
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  // October 2026 starts on Thursday (index 4)
-  // Let's create leading blank days for calendar grid
+  // Leading blanks for calendar grid
   const leadingBlanks = Array.from({ length: 4 }, (_, i) => i);
 
   const handleOpenDayModal = (record) => {
@@ -45,18 +60,31 @@ export const Attendance = () => {
     e.preventDefault();
     if (!activeDateModal) return;
 
-    const isPresent = editStatus === 'present';
-    const isWeekend = editStatus === 'weekend';
+    const isPresent = editStatus === 'present' || editStatus === 'od';
 
     updateAttendanceRecord(activeDateModal.id, {
       status: editStatus,
       checkIn: isPresent ? (activeDateModal.checkIn === '-' ? '09:15 AM' : activeDateModal.checkIn) : '-',
       checkOut: isPresent ? (activeDateModal.checkOut === '-' ? '05:45 PM' : activeDateModal.checkOut) : '-',
-      workingHours: isPresent ? '8.0 hrs' : '0 hrs',
+      workingHours: isPresent ? (activeDateModal.workingHours === '0 hrs' ? '8.0 hrs' : activeDateModal.workingHours) : '0 hrs',
       note: editNote
     });
 
     setActiveDateModal(null);
+  };
+
+  const handleCustomLogSubmit = (e) => {
+    e.preventDefault();
+    logAttendance(logFormData);
+    setIsLogModalOpen(false);
+    setLogFormData({
+      date: new Date().toISOString().split('T')[0],
+      status: 'present',
+      checkIn: '09:15 AM',
+      checkOut: '05:45 PM',
+      workingHours: '8.5 hrs',
+      note: ''
+    });
   };
 
   return (
@@ -66,21 +94,25 @@ export const Attendance = () => {
         <div>
           <div className="header-badge">
             <CalendarDays size={14} />
-            <span>SIP Academic Attendance</span>
+            <span>Attendance Register & Compliance</span>
           </div>
           <h1 className="page-title">Attendance Management</h1>
           <p className="page-subtitle">
-            Monitor verified working days, maintain daily sign-ins, and ensure compliance with university criteria.
+            Log your daily internship check-ins, record working hours, and verify academic eligibility for 7th Sem SIP Viva.
           </p>
         </div>
 
-        {/* Quick Check-in CTA */}
-        <button
-          className="btn btn-primary"
-          onClick={() => markTodayAttendance('present', 'Regularized student daily login')}
-        >
-          <Check size={16} /> Mark Today's Check-in
-        </button>
+        <div className="header-actions-group">
+          <button className="btn btn-outline" onClick={() => setIsLogModalOpen(true)}>
+            <Plus size={15} /> Log Any Date Entry
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => markTodayAttendance('present', 'Regularized student daily login')}
+          >
+            <Check size={16} /> Mark Today's Sign-in
+          </button>
+        </div>
       </div>
 
       {/* University Threshold Compliance Banner */}
@@ -113,7 +145,7 @@ export const Attendance = () => {
           <div className="att-stat-details">
             <span className="att-stat-label">Total Working Days</span>
             <h2 className="att-stat-value">{attendanceStats.totalWorkingDays}</h2>
-            <span className="att-stat-sub">Excludes Sundays & 2nd/4th Saturdays</span>
+            <span className="att-stat-sub">Excludes non-working days</span>
           </div>
         </div>
 
@@ -124,7 +156,7 @@ export const Attendance = () => {
           <div className="att-stat-details">
             <span className="att-stat-label">Present Days</span>
             <h2 className="att-stat-value text-success">{attendanceStats.presentDays}</h2>
-            <span className="att-stat-sub">Logged & verified by mentor</span>
+            <span className="att-stat-sub">Office & On-Duty days logged</span>
           </div>
         </div>
 
@@ -155,12 +187,13 @@ export const Attendance = () => {
       <div className="it-card calendar-card">
         <div className="card-header-row">
           <div>
-            <h3 className="card-title">October 2026 - Monthly Calendar View</h3>
+            <h3 className="card-title">Monthly Calendar View</h3>
             <p className="card-subtitle">Click on any date to inspect sign-in logs or update status</p>
           </div>
 
           <div className="calendar-legend-pills">
             <span className="leg-item"><span className="leg-dot bg-present"></span> Present</span>
+            <span className="leg-item"><span className="leg-dot bg-od"></span> On-Duty (OD)</span>
             <span className="leg-item"><span className="leg-dot bg-absent"></span> Absent</span>
             <span className="leg-item"><span className="leg-dot bg-leave"></span> Leave</span>
             <span className="leg-item"><span className="leg-dot bg-weekend"></span> Weekend</span>
@@ -198,6 +231,8 @@ export const Attendance = () => {
                   <span className={`status-pill ${rec.status}`}>
                     {rec.status === 'present'
                       ? 'Present'
+                      : rec.status === 'od'
+                      ? 'On-Duty'
                       : rec.status === 'absent'
                       ? 'Absent'
                       : rec.status === 'leave'
@@ -206,7 +241,7 @@ export const Attendance = () => {
                   </span>
                 </div>
 
-                {rec.status === 'present' && (
+                {(rec.status === 'present' || rec.status === 'od') && (
                   <div className="day-hours-snippet">{rec.workingHours}</div>
                 )}
               </div>
@@ -219,9 +254,12 @@ export const Attendance = () => {
       <div className="it-card table-card">
         <div className="card-header-row p-header">
           <div>
-            <h3 className="card-title">Detailed Attendance Audit Log</h3>
-            <p className="card-subtitle">Verified record of working hours and check-in/out timestamps</p>
+            <h3 className="card-title">Detailed Attendance Logbook</h3>
+            <p className="card-subtitle">Verified record of working hours and timestamps</p>
           </div>
+          <button className="btn btn-outline btn-sm" onClick={() => setIsLogModalOpen(true)}>
+            <Plus size={13} /> Add Manual Log
+          </button>
         </div>
 
         <div className="table-responsive">
@@ -238,51 +276,168 @@ export const Attendance = () => {
               </tr>
             </thead>
             <tbody>
-              {attendance.slice(0, 15).map((rec) => (
-                <tr key={rec.id}>
-                  <td>
-                    <div className="date-cell">
-                      <Calendar size={13} />
-                      <strong>{rec.date}</strong> ({rec.day})
-                    </div>
-                  </td>
-                  <td>
-                    <span
-                      className={`badge ${
-                        rec.status === 'present'
-                          ? 'badge-success'
-                          : rec.status === 'absent'
-                          ? 'badge-danger'
-                          : rec.status === 'leave'
-                          ? 'badge-warning'
-                          : 'badge-neutral'
-                      }`}
-                    >
-                      {rec.status}
-                    </span>
-                  </td>
-                  <td>{rec.checkIn}</td>
-                  <td>{rec.checkOut}</td>
-                  <td>{rec.workingHours}</td>
-                  <td>
-                    <span className="rec-note-text">{rec.note}</span>
-                  </td>
-                  <td className="text-right">
-                    <button
-                      className="btn-action view-btn"
-                      onClick={() => handleOpenDayModal(rec)}
-                    >
-                      <Edit2 size={13} /> Edit
-                    </button>
+              {attendance.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="text-center py-6 text-muted">
+                    No attendance records logged yet. Click "+ Log Any Date Entry" to record your days.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                attendance.slice(0, 15).map((rec) => (
+                  <tr key={rec.id}>
+                    <td>
+                      <div className="date-cell">
+                        <Calendar size={13} />
+                        <strong>{rec.date}</strong> ({rec.day})
+                      </div>
+                    </td>
+                    <td>
+                      <span
+                        className={`badge ${
+                          rec.status === 'present'
+                            ? 'badge-success'
+                            : rec.status === 'od'
+                            ? 'badge-purple'
+                            : rec.status === 'absent'
+                            ? 'badge-danger'
+                            : rec.status === 'leave'
+                            ? 'badge-warning'
+                            : 'badge-neutral'
+                        }`}
+                      >
+                        {rec.status === 'od' ? 'On-Duty' : rec.status}
+                      </span>
+                    </td>
+                    <td>{rec.checkIn}</td>
+                    <td>{rec.checkOut}</td>
+                    <td>{rec.workingHours}</td>
+                    <td>
+                      <span className="rec-note-text">{rec.note}</span>
+                    </td>
+                    <td className="text-right">
+                      <button
+                        className="btn-action view-btn"
+                        onClick={() => handleOpenDayModal(rec)}
+                      >
+                        <Edit2 size={13} /> Edit
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Edit Day Attendance Modal */}
+      {/* MODAL 1: Add Custom Attendance Entry for ANY Date */}
+      {isLogModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsLogModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Record Attendance Entry</h3>
+              <button className="modal-close-btn" onClick={() => setIsLogModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCustomLogSubmit}>
+              <div className="modal-body">
+                <div className="form-row-2">
+                  <div className="form-group">
+                    <label>
+                      Date <span className="required">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={logFormData.date}
+                      onChange={(e) => setLogFormData({ ...logFormData, date: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Attendance Status</label>
+                    <select
+                      className="form-control"
+                      value={logFormData.status}
+                      onChange={(e) => setLogFormData({ ...logFormData, status: e.target.value })}
+                    >
+                      <option value="present">Present (Normal Work Day)</option>
+                      <option value="od">On-Duty / OD (College Event / Exam)</option>
+                      <option value="leave">Approved Leave</option>
+                      <option value="absent">Absent</option>
+                      <option value="weekend">Non-working Day / Weekend</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-row-2">
+                  <div className="form-group">
+                    <label>Check-in Time</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="e.g. 09:15 AM"
+                      value={logFormData.checkIn}
+                      onChange={(e) => setLogFormData({ ...logFormData, checkIn: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Check-out Time</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="e.g. 05:45 PM"
+                      value={logFormData.checkOut}
+                      onChange={(e) => setLogFormData({ ...logFormData, checkOut: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Total Working Hours Logged</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g. 8.5 hrs"
+                    value={logFormData.workingHours}
+                    onChange={(e) => setLogFormData({ ...logFormData, workingHours: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Activity Summary or Leave Justification</label>
+                  <textarea
+                    rows={3}
+                    className="form-control"
+                    placeholder="Brief description of work done today or reason for leave..."
+                    value={logFormData.note}
+                    onChange={(e) => setLogFormData({ ...logFormData, note: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setIsLogModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Record Entry
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: Edit Day Attendance */}
       {activeDateModal && (
         <div className="modal-overlay" onClick={() => setActiveDateModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -306,7 +461,8 @@ export const Attendance = () => {
                     onChange={(e) => setEditStatus(e.target.value)}
                   >
                     <option value="present">Present (Normal Working Day)</option>
-                    <option value="absent">Absent (Unexcused Absence)</option>
+                    <option value="od">On-Duty / OD (College Event / Exam)</option>
+                    <option value="absent">Absent</option>
                     <option value="leave">Approved Leave / College Exam</option>
                     <option value="weekend">Weekend / Non-working Day</option>
                   </select>

@@ -8,12 +8,14 @@ import {
   CheckCheck,
   User,
   RotateCcw,
-  ExternalLink,
   ChevronDown,
   Briefcase,
   CheckCircle2,
   AlertTriangle,
-  Info
+  Info,
+  LogOut,
+  Trash2,
+  Sparkles
 } from 'lucide-react';
 import './Navbar.css';
 
@@ -25,6 +27,8 @@ export const Navbar = () => {
     markAllNotificationsRead,
     setIsSidebarOpen,
     resetDemoData,
+    clearAllDataToFresh,
+    logoutUser,
     searchQuery,
     setSearchQuery
   } = useInternTrack();
@@ -104,10 +108,10 @@ export const Navbar = () => {
 
       {/* Right: Actions, Notifications, Profile Pill */}
       <div className="navbar-right">
-        {/* Academic Status Badge */}
+        {/* Student ID Tag */}
         <div className="academic-status-pill">
           <span className="live-indicator"></span>
-          <span className="status-text">7th Sem SIP Portal</span>
+          <span className="status-text">{profile.enrollmentNo}</span>
         </div>
 
         {/* Notifications Popover */}
@@ -198,7 +202,7 @@ export const Navbar = () => {
             />
             <div className="user-info-text">
               <span className="user-name">{profile.fullName}</span>
-              <span className="user-role">Intern / 7th Sem</span>
+              <span className="user-role">{profile.enrollmentNo} &bull; {profile.semester || '7th Sem'}</span>
             </div>
             <ChevronDown size={16} className={`dropdown-chevron ${showProfileMenu ? 'open' : ''}`} />
           </button>
@@ -206,8 +210,9 @@ export const Navbar = () => {
           {showProfileMenu && (
             <div className="dropdown-menu profile-dropdown">
               <div className="profile-dropdown-header">
-                <p className="signed-as">Signed in as</p>
-                <p className="profile-email">{profile.email}</p>
+                <p className="signed-as">Student Account</p>
+                <p className="profile-email">{profile.fullName}</p>
+                <p className="profile-id-sub font-mono">{profile.enrollmentNo}</p>
                 <div className="profile-college-tag">{profile.collegeName}</div>
               </div>
 
@@ -216,25 +221,55 @@ export const Navbar = () => {
               <ul className="profile-menu-links">
                 <li>
                   <Link to="/profile" onClick={() => setShowProfileMenu(false)}>
-                    <User size={16} /> My Student Profile
+                    <User size={16} /> Student Profile & Identity
                   </Link>
                 </li>
                 <li>
                   <Link to="/my-applications" onClick={() => setShowProfileMenu(false)}>
-                    <Briefcase size={16} /> Track Applications
+                    <Briefcase size={16} /> Track My Applications
                   </Link>
+                </li>
+
+                <div className="dropdown-divider"></div>
+
+                <li>
+                  <button
+                    className="menu-button-action text-danger"
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      if (window.confirm("Clear all dummy data? This will empty sample tasks, diary, and attendance so you can add your own real data.")) {
+                        clearAllDataToFresh();
+                      }
+                    }}
+                  >
+                    <Trash2 size={15} /> Wipe Dummy Data (Start Fresh)
+                  </button>
                 </li>
                 <li>
                   <button
                     className="menu-button-action"
                     onClick={() => {
                       setShowProfileMenu(false);
-                      if (window.confirm("Reset demo data to initial state? This is useful for evaluator testing.")) {
+                      if (window.confirm("Reload default sample records for presentation?")) {
                         resetDemoData();
                       }
                     }}
                   >
-                    <RotateCcw size={16} /> Reset Demo Data (Evaluator Mode)
+                    <RotateCcw size={15} /> Load Sample Records
+                  </button>
+                </li>
+
+                <div className="dropdown-divider"></div>
+
+                <li>
+                  <button
+                    className="menu-button-action logout-action"
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      logoutUser();
+                    }}
+                  >
+                    <LogOut size={15} /> Sign Out / Switch Account
                   </button>
                 </li>
               </ul>

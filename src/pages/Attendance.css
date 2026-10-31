@@ -111,6 +111,7 @@
 }
 
 .bg-present { background-color: #22c55e; }
+.bg-od { background-color: #7c3aed; }
 .bg-absent { background-color: #ef4444; }
 .bg-leave { background-color: #f59e0b; }
 .bg-weekend { background-color: #94a3b8; }
@@ -207,6 +208,7 @@
 }
 
 .status-pill.present { background-color: #dcfce7; color: #15803d; }
+.status-pill.od { background-color: #f5f3ff; color: #6d28d9; }
 .status-pill.absent { background-color: #fee2e2; color: #b91c1c; }
 .status-pill.leave { background-color: #fef3c7; color: #b45309; }
 .status-pill.weekend { background-color: #f1f5f9; color: #64748b; }
@@ -243,3 +245,4 @@
     padding: 1px 3px;
   }
 }
+
