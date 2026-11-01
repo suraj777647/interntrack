@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useInternTrack } from './context/AppContext';
 
 // Components
@@ -70,11 +70,11 @@ const MainLayout = () => {
 
 export const App = () => {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AppProvider>
         <MainLayout />
       </AppProvider>
-    </BrowserRouter>
+    </HashRouter>
   );
 };
 
